@@ -169,7 +169,7 @@ public class DataExchange {
     public boolean manualCreate(String ziomID, String roomId, String subject, Date start, Date end, final MainActivity mainActivity)
     {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
+        Log.e("RoomX", "Creating appointment");
         params.put("roomId", roomId);
         params.put("memberID", ziomID);
         params.put("subject", subject);
@@ -180,7 +180,7 @@ public class DataExchange {
             // When the response returned by REST has Http response code '200'
             @Override
             public void onSuccess(String response) {
-                //Log.e("RoomX", "+++ received json  +++" + response);
+                Log.e("RoomX", "Created appointment");
                 try {
                     if(response.equals("true"))
                     {
