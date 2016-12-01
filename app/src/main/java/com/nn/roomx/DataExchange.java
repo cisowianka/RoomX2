@@ -24,7 +24,7 @@ public class DataExchange {
     public DataExchange() {
     }
 
-    public boolean getMeetingsForRoom(String roomId, final MainActivity mainActivity)
+    public boolean getMeetingsForRoom(String roomId)
     {
 
         params.put("room", roomId);
@@ -36,8 +36,8 @@ public class DataExchange {
                 //Log.e("RoomX", "+++ received json  +++" + response);
                 try {
                     jsonparser.parseAppointmentsList(response);
-                    Toast.makeText(mainActivity, "Appointments received", Toast.LENGTH_SHORT).show();
-                    //Log.e("RoomX", "+++ sucess  +++" + response);
+                    //Toast.makeText(mainActivity, "Appointments received", Toast.LENGTH_SHORT).show();
+                    Log.e("RoomX", "+++ appointments sucess  +++");
 
                 } catch (Exception e) {
                     Log.e("RoomX", "+++ failure catch +++" + e);
