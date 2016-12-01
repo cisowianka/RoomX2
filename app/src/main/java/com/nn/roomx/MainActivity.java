@@ -28,16 +28,16 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button getApposButton = (Button) findViewById(R.id.button1);
+        Button getApposButton = (Button) findViewById(R.id.buttonStart);
         getApposButton.setOnClickListener(buttonGetApposListener);
 
-        Button button2print = (Button) findViewById(R.id.button2);
-        button2print.setOnClickListener(button2printListener);
+//        Button button2print = (Button) findViewById(R.id.button2);
+//        button2print.setOnClickListener(button2printListener);
 
-        Button button3confirm = (Button) findViewById(R.id.button3);
+        Button button3confirm = (Button) findViewById(R.id.buttonFinish);
         button3confirm.setOnClickListener(button3confirmListener);
 
-        Button button4kreate = (Button) findViewById(R.id.button4);
+        Button button4kreate = (Button) findViewById(R.id.buttonCancel);
         button4kreate.setOnClickListener(button4kreateListener);
     }
 
@@ -73,6 +73,13 @@ public class MainActivity extends AppCompatActivity {
 
             Log.e("RoomX", "getting room appointments...");
             dx.getMeetingsForRoom("room1@sobotka.info", MainActivity.this);
+
+            Log.v("RoomX", String.valueOf(Appointment.appointmentsExList.size()));
+
+            for(Appointment ax : Appointment.appointmentsExList)
+            {
+                Log.v("RoomX",ax.toString());
+            }
         }
     };
 
@@ -114,12 +121,7 @@ public class MainActivity extends AppCompatActivity {
             x = cc.getTime();
 
             dx.manualCreate("Administrator@sobotka.info","room1@sobotka.info","Na temat",x,x,MainActivity.this);
-            Log.v("RoomX", "");
 
-            for(Appointment ax : Appointment.appointmentsExList)
-            {
-                Log.v("RoomX",ax.toString());
-            }
         }
     };
 }
