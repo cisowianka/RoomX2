@@ -72,9 +72,8 @@ public class MainActivity extends AppCompatActivity {
             TextView tVend = (TextView) findViewById(R.id.textViewEnd);
             Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
             buttonColors.setClickable(false);
-
-            //dummy
-            Appointment active = Appointment.appointmentsExList.get(0);
+            
+            Appointment active = Appointment.getCurrentAppointment();
 
             if(active == null)
             {
@@ -90,10 +89,11 @@ public class MainActivity extends AppCompatActivity {
             {
                 buttonColors.setVisibility(View.INVISIBLE);
                 tVsubj.setText(active.getSubject());
+                tVstatus.setText("BUSY");
+                tVhost.setText(active.getOwner().getName());
+                tVstart.setText(active.getStart().toString());
+                tVend.setText(active.getEnd().toString());
             }
-
-
-
 
         }
 

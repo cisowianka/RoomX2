@@ -116,4 +116,9 @@ public class Appointment {
         result = 31 * result + (attendees != null ? attendees.hashCode() : 0);
         return result;
     }
+
+    public static Appointment getCurrentAppointment() {
+
+        return null;
+    }
 }
