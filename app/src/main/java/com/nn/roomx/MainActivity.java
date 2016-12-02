@@ -8,6 +8,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -74,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
             buttonColors.setClickable(false);
             
             Appointment active = Appointment.getCurrentAppointment();
+            Log.e("SETCURRENTAPP ", "" + active);
 
             if(active == null)
             {
@@ -94,6 +96,9 @@ public class MainActivity extends AppCompatActivity {
                 tVstart.setText(active.getStart().toString());
                 tVend.setText(active.getEnd().toString());
             }
+
+
+
 
         }
 

@@ -1,5 +1,8 @@
 package com.nn.roomx.ObjClasses;
 
+import android.util.Log;
+
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -118,7 +121,22 @@ public class Appointment {
     }
 
     public static Appointment getCurrentAppointment() {
-
-        return null;
+        Appointment result = null;
+        Log.e("getCurrentAppointment", "APPoinment siz " + appointmentsExList.size());
+        if(appointmentsExList.size() > 0){
+            Date now = new Date();
+            for(Appointment a : appointmentsExList){
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                Log.d("getCurrentAppointment", "APP " + formatter.format(a.getStart()) + " " + formatter.format(a.getEnd()) + " " + now.after(a.getStart()) + " " +  a.getEnd().after(now));
+                Log.d("getCurrentAppointment", "CURRENT " + formatter.format(now) );
+                if (now.after(a.getStart()) && a.getEnd().after(now)) {
+                    result =  a;
+                    return result;
+                }
+            }
+            return result;
+        }else {
+            return null;
+        }
     }
 }

@@ -11,7 +11,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-
+import android.util.Log;
 /**
  * Created by Mikołaj on 01.12.2016.
  */
@@ -27,11 +27,13 @@ public class JSONParser {
         Log.e("RoomX", "parsing appointments");
         JSONArray appointments = reader.getJSONArray("appointments");
 
+        Appointment.appointmentsExList.clear();
+
         for (int i = 0; i < appointments.length(); i++) {
 
             JSONObject c = appointments.getJSONObject(i);
 
-            Appointment.appointmentsExList.clear();
+
 
             Appointment tmpApp = new Appointment();
 
@@ -40,6 +42,7 @@ public class JSONParser {
 
             SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             try {
+                Log.e("PARSER ", "--- " + c.getString("startStr") +  " " +c.getString("endStr") );
                 startDate = formatter.parse(c.getString("startStr"));
                 endDate = formatter.parse(c.getString("endStr"));
             } catch (ParseException e) {
