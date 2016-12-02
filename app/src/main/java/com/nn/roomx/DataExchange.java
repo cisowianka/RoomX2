@@ -129,6 +129,8 @@ public class DataExchange {
         return true;
     }
 
+
+
     public boolean finish(String ziomID, String meetingID, final MainActivity mainActivity)
     {
         params.put("appointmentID", meetingID);

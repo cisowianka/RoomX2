@@ -41,13 +41,16 @@ public class MainActivity extends AppCompatActivity {
 
 
         Button getApposButton = (Button) findViewById(R.id.buttonStart);
-        getApposButton.setOnClickListener(buttonGetApposListener);
+        getApposButton.setOnClickListener(button3confirmListener);
 
 //        Button button2print = (Button) findViewById(R.id.button2);
 //        button2print.setOnClickListener(button2printListener);
 
-        Button button3confirm = (Button) findViewById(R.id.buttonFinish);
-        button3confirm.setOnClickListener(button3confirmListener);
+//        Button button3confirm = (Button) findViewById(R.id.buttonFinish);
+//        button3confirm.setOnClickListener(button3confirmListener);
+
+        Button buttonFinish = (Button) findViewById(R.id.buttonFinish);
+        buttonFinish.setOnClickListener(buttonFinishListener);
 
 //        Button button4kreate = (Button) findViewById(R.id.buttonCancel);
 //        button4kreate.setOnClickListener(button4kreateListener);
@@ -115,6 +118,22 @@ public class MainActivity extends AppCompatActivity {
     private void refreshAppointments(){
         dx.getMeetingsForRoom(ROOM_ID);
         setAppointmentsView();
+        TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
+        TextView tVstatus = (TextView) findViewById(R.id.textViewStatus);
+        TextView tVhost = (TextView) findViewById(R.id.textViewHost);
+        TextView tVstart = (TextView) findViewById(R.id.textViewStart);
+        TextView tVend = (TextView) findViewById(R.id.textViewEnd);
+        Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
+        buttonColors.setClickable(false);
+
+        tVsubj.setText("");
+        tVstatus.setText("FREE");
+        buttonColors.setVisibility(View.VISIBLE);
+        buttonColors.setBackgroundColor(Color.GREEN);
+        tVhost.setText("");
+        tVstart.setText("");
+        tVend.setText("");
+
     }
 
     @Override
@@ -207,6 +226,16 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View view) {
 
             dx.cancel("Administrator@sobotka.info", Appointment.getCurrentAppointment().getID(), MainActivity.this);
+            refreshAppointments();
+
+        }
+    };
+
+    View.OnClickListener buttonFinishListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+
+            dx.finish("Administrator@sobotka.info", Appointment.getCurrentAppointment().getID(), MainActivity.this);
             refreshAppointments();
 
         }
