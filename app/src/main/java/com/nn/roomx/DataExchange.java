@@ -75,6 +75,14 @@ public class DataExchange {
 
                 borders.remove(0);
 
+                if(appointmentsExList.size() == 1)
+                {
+                    Appointment dummy = new Appointment();
+                    dummy.setSubject("FREE");
+                    dummy.setStart(now);
+                    dummy.setEnd(appointmentsExList.get(0).getStart());
+                }
+
                 for(int i = 0; i<borders.size(); i=i+2)
                 {
                     if(i+1 < borders.size() && borders.get(i).equals(borders.get(i+1)))
@@ -89,7 +97,7 @@ public class DataExchange {
 
                     if(i+1 < borders.size())
                     {
-                        dummy.setStart(borders.get(i+1));
+                        dummy.setEnd(borders.get(i+1));
                     }
 
                 }

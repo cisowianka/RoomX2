@@ -11,6 +11,7 @@ import android.os.StrictMode;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -19,6 +20,7 @@ import android.view.View;
 import android.widget.*;
 import com.nn.roomx.ObjClasses.Appointment;
 
+import javax.xml.datatype.Duration;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -48,8 +50,8 @@ public class MainActivity extends AppCompatActivity {
         StrictMode.setThreadPolicy(policy);
 
 
-        Button getApposButton = (Button) findViewById(R.id.buttonStart);
-        getApposButton.setOnClickListener(button3confirmListener);
+        Button confirmCreateButton = (Button) findViewById(R.id.buttonStart);
+        confirmCreateButton.setOnClickListener(button3confirmListener);
 
         Button buttonFinish = (Button) findViewById(R.id.buttonFinish);
         buttonFinish.setOnClickListener(buttonFinishListener);
@@ -59,8 +61,29 @@ public class MainActivity extends AppCompatActivity {
 
 
         adapter = new ArrayAdapter<Appointment>(MainActivity.this,android.R.layout.simple_list_item_1,Appointment.appointmentsExList);
-        ListView lv= (ListView) findViewById(R.id.listView);
+        final ListView lv= (ListView) findViewById(R.id.listView);
         lv.setAdapter(adapter);
+
+        lv.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(final AdapterView<?> parent, final View view, final int position, long id) {
+
+               // EditOrDelete(view, position, lv);
+
+                return true;
+            }
+        });
+
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                Appointment toUpdate = (Appointment) lv.getItemAtPosition(position);
+
+                if(toUpdate.getID()!=null)
+                Toast.makeText(MainActivity.this, toUpdate.getSubject()+" "+toUpdate.getOwner().getName(), Toast.LENGTH_LONG).show();
+        }
+        });
 
         this.mHandler = new Handler();
         this.mHandler.postDelayed(m_Runnable,500);
@@ -207,20 +230,51 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener buttonCreateListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
-            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            Date d = new Date();
-            Calendar c = Calendar.getInstance();
-            c.setTime(new Date());
-            c.set(java.util.Calendar.SECOND, 0);
-            c.set(java.util.Calendar.MILLISECOND, 0);
 
-            c.add(Calendar.MINUTE, -2);
-            Date now = c.getTime();
+            final String[] m_Text = {""};
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            builder.setTitle("Meeting subject:");
+            final EditText input = new EditText(MainActivity.this);
+            input.setInputType(InputType.TYPE_CLASS_TEXT);
+            builder.setView(input);
+            builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    m_Text[0] = input.getText().toString();
+                    Log.v("RoomX",m_Text[0]);
 
-            c.add(Calendar.MINUTE, 30);
+                    if(m_Text[0] == "")
+                    {
+                        return;
+                    }
 
-            dx.manualCreate("administrator@sobotka.info", ROOM_ID, "AUTO_SUBJECT", now, c.getTime(), MainActivity.this);
+                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    Date d = new Date();
+                    Calendar c = Calendar.getInstance();
+                    c.setTime(new Date());
+                    c.set(java.util.Calendar.SECOND, 0);
+                    c.set(java.util.Calendar.MILLISECOND, 0);
 
+                    c.add(Calendar.MINUTE, -2);
+                    Date now = c.getTime();
+                    Log.v("RoomX","COS JEST NIE TYEGES");
+                    c.add(Calendar.MINUTE, 30);
+
+                    dx.manualCreate("administrator@sobotka.info", ROOM_ID, m_Text[0], now, c.getTime(), MainActivity.this);
+
+
+                    dialog.dismiss();
+                }
+            });
+            builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.cancel();
+                }
+            });
+
+            builder.show();
+            
         }
     };
 

@@ -92,7 +92,7 @@ public class Appointment {
             return subject;
         }
 
-        return  formatter.format(start) + " - " + formatter.format(end);
+        return  formatter.format(start) + " - " + formatter.format(end)+" "+subject;
     }
 
     @Override
