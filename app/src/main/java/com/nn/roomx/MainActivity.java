@@ -70,6 +70,8 @@ public class MainActivity extends AppCompatActivity {
         this.mHandler = new Handler();
         this.mHandler.postDelayed(m_Runnable,500);
 
+        setupInitAppointments();
+
         onCreateBT();
     }
 
@@ -98,6 +100,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
     };
+
+
+    private void setupInitAppointments(){
+        dx.getMeetingsForRoom(ROOM_ID);
+        setAppointmentsView();
+    }
 
     private void setAppointmentsView(){
         TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
@@ -241,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener buttonCancelListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
-
+            Log.e("CancelButtoon", "Clicekd");
             dx.cancel("Administrator@sobotka.info", Appointment.getCurrentAppointment().getID(), MainActivity.this);
             refreshAppointments();
 
@@ -321,6 +329,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void tryConfirm(String userID){
+        Log.e("TryConfirm", "Confirm " + userID);
+        Appointment active = Appointment.getCurrentAppointment();
+        if(active == null){
+            Toast.makeText(getApplicationContext(), "There is no meeting at this moment",  Toast.LENGTH_SHORT).show();
+        }else{
+            dx.confirmStarted(userID,active.getID(),MainActivity.this);
+            Toast.makeText(getApplicationContext(), "Confirmation for" + userID,  Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void onCreateBT(){
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         // If the adapter is null, then Bluetooth is not supported
@@ -368,8 +387,9 @@ public class MainActivity extends AppCompatActivity {
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
-                    Toast.makeText(getApplicationContext(), "Connected to "
-                            + readMessage, Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(getApplicationContext(), "Connected to "
+//                            + readMessage, Toast.LENGTH_SHORT).show();
+                    tryConfirm(readMessage.replace("Read content: ", ""));
                     break;
                 case MESSAGE_DEVICE_NAME:
                     // save the connected device's name
