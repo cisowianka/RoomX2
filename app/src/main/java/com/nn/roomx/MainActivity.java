@@ -29,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
     private static Appointment currentAppointment;
     private Handler mHandler;
 
+    private static final String ROOM_ID = "room1@sobotka.info";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,8 +49,11 @@ public class MainActivity extends AppCompatActivity {
         Button button3confirm = (Button) findViewById(R.id.buttonFinish);
         button3confirm.setOnClickListener(button3confirmListener);
 
-        Button button4kreate = (Button) findViewById(R.id.buttonCancel);
-        button4kreate.setOnClickListener(button4kreateListener);
+//        Button button4kreate = (Button) findViewById(R.id.buttonCancel);
+//        button4kreate.setOnClickListener(button4kreateListener);
+
+        Button buttonCancel = (Button) findViewById(R.id.buttonCancel);
+        buttonCancel.setOnClickListener(buttonCancelListener);
 
 //        Scheduler sr = new Scheduler();
 //        sr.autoUpdate();
@@ -63,46 +68,54 @@ public class MainActivity extends AppCompatActivity {
 
         {
             //Toast.makeText(MainActivity.this,"in runnable",Toast.LENGTH_SHORT).show();
-            MainActivity.this.mHandler.postDelayed(m_Runnable, 120000);
+            MainActivity.this.mHandler.postDelayed(m_Runnable, 10000);
             dx.getMeetingsForRoom("room1@sobotka.info");
 
-            TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
-            TextView tVstatus = (TextView) findViewById(R.id.textViewStatus);
-            TextView tVhost = (TextView) findViewById(R.id.textViewHost);
-            TextView tVstart = (TextView) findViewById(R.id.textViewStart);
-            TextView tVend = (TextView) findViewById(R.id.textViewEnd);
-            Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
-            buttonColors.setClickable(false);
-            
-            Appointment active = Appointment.getCurrentAppointment();
-            Log.e("SETCURRENTAPP ", "" + active);
-
-            if(active == null)
-            {
-                tVsubj.setText("");
-                tVstatus.setText("FREE");
-                buttonColors.setVisibility(View.VISIBLE);
-                buttonColors.setBackgroundColor(Color.GREEN);
-                tVhost.setText("");
-                tVstart.setText("");
-                tVend.setText("");
-            }
-            else
-            {
-                buttonColors.setVisibility(View.INVISIBLE);
-                tVsubj.setText(active.getSubject());
-                tVstatus.setText("BUSY");
-                tVhost.setText(active.getOwner().getName());
-                tVstart.setText(active.getStart().toString());
-                tVend.setText(active.getEnd().toString());
-            }
-
+            setAppointmentsView();
 
 
 
         }
 
     };
+
+    private void setAppointmentsView(){
+        TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
+        TextView tVstatus = (TextView) findViewById(R.id.textViewStatus);
+        TextView tVhost = (TextView) findViewById(R.id.textViewHost);
+        TextView tVstart = (TextView) findViewById(R.id.textViewStart);
+        TextView tVend = (TextView) findViewById(R.id.textViewEnd);
+        Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
+        buttonColors.setClickable(false);
+
+        Appointment active = Appointment.getCurrentAppointment();
+        Log.e("SETCURRENTAPP ", "" + active);
+
+        if(active == null)
+        {
+            tVsubj.setText("");
+            tVstatus.setText("FREE");
+            buttonColors.setVisibility(View.VISIBLE);
+            buttonColors.setBackgroundColor(Color.GREEN);
+            tVhost.setText("");
+            tVstart.setText("");
+            tVend.setText("");
+        }
+        else
+        {
+            buttonColors.setVisibility(View.INVISIBLE);
+            tVsubj.setText(active.getSubject());
+            tVstatus.setText("BUSY");
+            tVhost.setText(active.getOwner().getName());
+            tVstart.setText(active.getStart().toString());
+            tVend.setText(active.getEnd().toString());
+        }
+    }
+
+    private void refreshAppointments(){
+        dx.getMeetingsForRoom(ROOM_ID);
+        setAppointmentsView();
+    }
 
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
@@ -184,6 +197,17 @@ public class MainActivity extends AppCompatActivity {
             x = cc.getTime();
 
             dx.manualCreate("Administrator@sobotka.info","room1@sobotka.info","Na temat",x,x,MainActivity.this);
+
+        }
+    };
+
+
+    View.OnClickListener buttonCancelListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+
+            dx.cancel("Administrator@sobotka.info", Appointment.getCurrentAppointment().getID(), MainActivity.this);
+            refreshAppointments();
 
         }
     };
