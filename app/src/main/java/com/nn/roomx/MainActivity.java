@@ -49,23 +49,11 @@ public class MainActivity extends AppCompatActivity {
         Button getApposButton = (Button) findViewById(R.id.buttonStart);
         getApposButton.setOnClickListener(button3confirmListener);
 
-//        Button button2print = (Button) findViewById(R.id.button2);
-//        button2print.setOnClickListener(button2printListener);
-
-//        Button button3confirm = (Button) findViewById(R.id.buttonFinish);
-//        button3confirm.setOnClickListener(button3confirmListener);
-
         Button buttonFinish = (Button) findViewById(R.id.buttonFinish);
         buttonFinish.setOnClickListener(buttonFinishListener);
 
-//        Button button4kreate = (Button) findViewById(R.id.buttonCancel);
-//        button4kreate.setOnClickListener(button4kreateListener);
-
         Button buttonCancel = (Button) findViewById(R.id.buttonCancel);
         buttonCancel.setOnClickListener(buttonCancelListener);
-
-//        Scheduler sr = new Scheduler();
-//        sr.autoUpdate();
 
         adapter = new ArrayAdapter<Appointment>(MainActivity.this,android.R.layout.simple_list_item_1,Appointment.appointmentsExList);
         ListView lv= (ListView) findViewById(R.id.listView);
@@ -87,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     private final Runnable m_Runnable = new Runnable()
     {
         public void run()
@@ -100,7 +87,6 @@ public class MainActivity extends AppCompatActivity {
             setAppointmentsView();
 
         }
-
     };
 
 
