@@ -1,12 +1,14 @@
 package com.nn.roomx;
 
 import android.bluetooth.BluetoothAdapter;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
+import android.os.StrictMode;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -14,14 +16,12 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.*;
 import com.nn.roomx.ObjClasses.Appointment;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -44,6 +44,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
 
 
         Button getApposButton = (Button) findViewById(R.id.buttonStart);
@@ -54,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
 
         Button buttonCancel = (Button) findViewById(R.id.buttonCancel);
         buttonCancel.setOnClickListener(buttonCancelListener);
+
 
         adapter = new ArrayAdapter<Appointment>(MainActivity.this,android.R.layout.simple_list_item_1,Appointment.appointmentsExList);
         ListView lv= (ListView) findViewById(R.id.listView);
@@ -204,7 +207,19 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener buttonCreateListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date d = new Date();
+            Calendar c = Calendar.getInstance();
+            c.setTime(new Date());
+            c.set(java.util.Calendar.SECOND, 0);
+            c.set(java.util.Calendar.MILLISECOND, 0);
 
+            c.add(Calendar.MINUTE, -2);
+            Date now = c.getTime();
+
+            c.add(Calendar.MINUTE, 30);
+
+            dx.manualCreate("administrator@sobotka.info", ROOM_ID, "AUTO_SUBJECT", now, c.getTime(), MainActivity.this);
 
         }
     };
@@ -231,11 +246,29 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
             Log.e("CancelButtoon", "Clicekd");
-            dx.cancel("Administrator@sobotka.info", Appointment.getCurrentAppointment().getID(), MainActivity.this);
-            refreshAppointments();
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Cancell appointment?")
+                    .setMessage("User your card to confirm")
+                    .setNegativeButton("Close", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            dialog.cancel();
+                        }
+                    });
+            cancelAlert = builder.create();
+            alertAction = "Cancel";
+            cancelAlert.show();
+
+        //    dx.cancel("Administrator@sobotka.info", Appointment.getCurrentAppointment().getID(), MainActivity.this);
+        //    refreshAppointments();
 
         }
     };
+
+    private void tryCancel(String memberID){
+        dx.cancel(memberID, Appointment.getCurrentAppointment().getID(), MainActivity.this);
+        refreshAppointments();
+    }
 
     View.OnClickListener buttonFinishListener = new View.OnClickListener() {
         @Override
@@ -266,6 +299,8 @@ public class MainActivity extends AppCompatActivity {
      *
      */
 
+    private AlertDialog cancelAlert;
+    private String alertAction = "";
 
     private static final int REQUEST_CONNECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
@@ -311,13 +346,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void tryConfirm(String userID){
-        Log.e("TryConfirm", "Confirm " + userID);
-        Appointment active = Appointment.getCurrentAppointment();
-        if(active == null){
-            Toast.makeText(getApplicationContext(), "There is no meeting at this moment",  Toast.LENGTH_SHORT).show();
-        }else{
-            dx.confirmStarted(userID,active.getID(),MainActivity.this);
-            Toast.makeText(getApplicationContext(), "Confirmation for" + userID,  Toast.LENGTH_SHORT).show();
+        Log.e("TryConfirm", alertAction +  "Confirm " + userID);
+
+        if(cancelAlert != null){
+            alertAction = "";
+            cancelAlert.hide();
+            cancelAlert = null;
+            tryCancel(userID);
+
+
+        }else {
+            if(cancelAlert != null) {
+                cancelAlert.hide();
+            }
+            Appointment active = Appointment.getCurrentAppointment();
+            if (active == null) {
+                Toast.makeText(getApplicationContext(), "There is no meeting at this moment ", Toast.LENGTH_SHORT).show();
+            } else {
+                dx.confirmStarted(userID, active.getID(), MainActivity.this);
+                Toast.makeText(getApplicationContext(), "Confirmation for " + userID, Toast.LENGTH_SHORT).show();
+            }
         }
     }
 

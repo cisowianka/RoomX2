@@ -6,6 +6,8 @@ import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
 import com.nn.roomx.ObjClasses.Appointment;
+import com.loopj.android.http.SyncHttpClient;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -22,7 +24,7 @@ import java.util.Date;
 public class DataExchange {
 
     RequestParams params = new RequestParams();
-    AsyncHttpClient client = new AsyncHttpClient();
+    SyncHttpClient client = new SyncHttpClient();
     JSONParser jsonparser = new JSONParser();
 
     public DataExchange() {
@@ -134,7 +136,7 @@ public class DataExchange {
                     }
                     else
                     {
-                        Toast.makeText(mainActivity, "?????" + response, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mainActivity, "Appointment confirmed" + response, Toast.LENGTH_SHORT).show();
                     }
                     //Log.e("RoomX", "+++ sucess  +++" + response);
 
@@ -171,12 +173,13 @@ public class DataExchange {
                     }
                     else
                     {
-                        Toast.makeText(mainActivity, "?????" + response, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mainActivity, "Appointment cancelled" + response, Toast.LENGTH_SHORT).show();
                     }
                     //Log.e("RoomX", "+++ sucess  +++" + response);
 
                 } catch (Exception e) {
                     Log.e("RoomX", "+++ failure catch +++" + e);
+                    Toast.makeText(mainActivity, "Appointment canell failed" + response, Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -206,11 +209,11 @@ public class DataExchange {
                 try {
                     if(response.equals("true"))
                     {
-                        Toast.makeText(mainActivity, "Appointment cancelled", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mainActivity, "Appointment finished", Toast.LENGTH_SHORT).show();
                     }
                     else
                     {
-                        Toast.makeText(mainActivity, "?????" + response, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mainActivity, "Appointment finished ", Toast.LENGTH_SHORT).show();
                     }
                     //Log.e("RoomX", "+++ sucess  +++" + response);
 
@@ -234,7 +237,7 @@ public class DataExchange {
     {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Log.e("RoomX", "Creating appointment");
-        params.put("roomId", roomId);
+        params.put("roomID", roomId);
         params.put("memberID", ziomID);
         params.put("subject", subject);
         params.put("start", formatter.format(start));
@@ -252,7 +255,7 @@ public class DataExchange {
                     }
                     else
                     {
-                        Toast.makeText(mainActivity, "?????" + response, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mainActivity, "Appointment created" , Toast.LENGTH_SHORT).show();
                     }
                     //Log.e("RoomX", "+++ sucess  +++" + response);
 
