@@ -15,17 +15,17 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.*;
 import com.nn.roomx.ObjClasses.Appointment;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static ArrayAdapter<Appointment> adapter;
     final DataExchange dx = new DataExchange();
     private static final boolean AUTO_HIDE = true;
     private static final int AUTO_HIDE_DELAY_MILLIS = 3000;
@@ -67,6 +67,10 @@ public class MainActivity extends AppCompatActivity {
 //        Scheduler sr = new Scheduler();
 //        sr.autoUpdate();
 
+        adapter = new ArrayAdapter<Appointment>(MainActivity.this,android.R.layout.simple_list_item_1,Appointment.appointmentsExList);
+        ListView lv= (ListView) findViewById(R.id.listView);
+        lv.setAdapter(adapter);
+
         this.mHandler = new Handler();
         this.mHandler.postDelayed(m_Runnable,500);
 
@@ -95,8 +99,6 @@ public class MainActivity extends AppCompatActivity {
 
             setAppointmentsView();
 
-
-
         }
 
     };
@@ -116,6 +118,10 @@ public class MainActivity extends AppCompatActivity {
         Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
         buttonColors.setClickable(false);
 
+        Button b1 = (Button) findViewById(R.id.buttonStart);
+        Button b2 = (Button) findViewById(R.id.buttonCancel);
+        Button b3 = (Button) findViewById(R.id.buttonFinish);
+
         Appointment active = Appointment.getCurrentAppointment();
         Log.e("SETCURRENTAPP ", "" + active);
 
@@ -128,16 +134,38 @@ public class MainActivity extends AppCompatActivity {
             tVhost.setText("");
             tVstart.setText("");
             tVend.setText("");
+
+            b1.setText("CREATE");
+            b1.setVisibility(View.VISIBLE);
+            b2.setVisibility(View.INVISIBLE);
+            b3.setVisibility(View.INVISIBLE);
+            b1.setOnClickListener(buttonCreateListener);
         }
         else
         {
+            SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
             buttonColors.setVisibility(View.INVISIBLE);
             tVsubj.setText(active.getSubject());
             tVstatus.setText("BUSY");
             tVhost.setText(active.getOwner().getName());
-            tVstart.setText(active.getStart().toString());
-            tVend.setText(active.getEnd().toString());
+            tVstart.setText(formatter.format(active.getStart()));
+            tVend.setText(formatter.format(active.getEnd()));
+
+            b1.setText("START");
+            if(active.isConfirmed())
+            {
+                b1.setVisibility(View.INVISIBLE);
+            }
+            else
+            {
+                b1.setVisibility(View.VISIBLE);
+            }
+
+            b2.setVisibility(View.VISIBLE);
+            b3.setVisibility(View.VISIBLE);
+            b1.setOnClickListener(button3confirmListener);
         }
+
     }
 
     private void refreshAppointments(){
@@ -187,61 +215,28 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    View.OnClickListener buttonGetApposListener = new View.OnClickListener() {
+    View.OnClickListener buttonCreateListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
 
-            Log.e("RoomX", "getting room appointments...");
-            dx.getMeetingsForRoom("room1@sobotka.info");
-
-            Log.v("RoomX", String.valueOf(Appointment.appointmentsExList.size()));
-
-            for(Appointment ax : Appointment.appointmentsExList)
-            {
-                Log.v("RoomX",ax.toString());
-            }
-        }
-    };
-
-    View.OnClickListener button2printListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-
-            Log.v("RoomX", String.valueOf(Appointment.appointmentsExList.size()));
-
-            for(Appointment ax : Appointment.appointmentsExList)
-            {
-                Log.v("RoomX",ax.toString());
-            }
 
         }
     };
+
 
     View.OnClickListener button3confirmListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
 
             dx.confirmStarted(Appointment.appointmentsExList.get(0).getOwner().getID(),Appointment.appointmentsExList.get(0).getID(),MainActivity.this);
-
+            Button b1 = (Button) findViewById(R.id.buttonStart);
+            b1.setVisibility(View.INVISIBLE);
             Log.v("RoomX", "");
 
             for(Appointment ax : Appointment.appointmentsExList)
             {
                 Log.v("RoomX",ax.toString());
             }
-        }
-    };
-
-    View.OnClickListener button4kreateListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-
-            Date x = new Date();
-            Calendar cc = new GregorianCalendar();
-            x = cc.getTime();
-
-            dx.manualCreate("Administrator@sobotka.info","room1@sobotka.info","Na temat",x,x,MainActivity.this);
-
         }
     };
 

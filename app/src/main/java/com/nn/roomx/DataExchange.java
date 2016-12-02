@@ -5,11 +5,15 @@ import android.widget.Toast;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
+import com.nn.roomx.ObjClasses.Appointment;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.xml.datatype.Duration;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 
 /**
@@ -39,9 +43,67 @@ public class DataExchange {
                     //Toast.makeText(mainActivity, "Appointments received", Toast.LENGTH_SHORT).show();
                     Log.e("RoomX", "+++ appointments sucess  +++");
 
+                    InsertDummyFreeAppointments(Appointment.appointmentsExList);
+
+                    MainActivity.adapter.notifyDataSetChanged();
+
+
                 } catch (Exception e) {
                     Log.e("RoomX", "+++ failure catch +++" + e);
                 }
+            }
+
+            private void InsertDummyFreeAppointments(ArrayList<Appointment> appointmentsExList) {
+
+                if(appointmentsExList.size()==0)
+                {
+                    return;
+                }
+
+                //od tej chwili
+                Date now = new Date();
+
+                ArrayList<Date> borders = new ArrayList<Date>();
+
+                for(Appointment normal : appointmentsExList)
+                {
+                    borders.add(normal.getStart());
+                    borders.add(normal.getEnd());
+                }
+
+                borders.remove(0);
+
+                for(int i = 0; i<borders.size(); i=i+2)
+                {
+                    if(i+1 < borders.size() && borders.get(i).equals(borders.get(i+1)))
+                    {
+                        continue;
+                    }
+
+
+                    Appointment dummy = new Appointment();
+                    dummy.setSubject("FREE");
+                    dummy.setStart(borders.get(i));
+
+                    if(i+1 < borders.size())
+                    {
+                        dummy.setStart(borders.get(i+1));
+                    }
+
+                }
+
+                Collections.sort(appointmentsExList, new Comparator<Appointment>() {
+                    @Override
+                    public int compare(Appointment t0, Appointment t1) {
+
+                        if(t0.getStart().after(t1.getStart()))
+                        {
+                            return 1;
+                        }
+
+                        return -1;
+                    }
+                });
             }
 
             // When the response returned by REST has Http response code other than '200'

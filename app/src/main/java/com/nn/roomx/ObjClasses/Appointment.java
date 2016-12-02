@@ -85,15 +85,14 @@ public class Appointment {
 
     @Override
     public String toString() {
-        return "Appointment{" +
-                "ID='" + ID + '\'' +
-                ", subject='" + subject + '\'' +
-                ", start=" + start +
-                ", end=" + end +
-                ", owner=" + owner +
-                ", attendees=" + attendees +
-                ", isConfirmed=" + isConfirmed +
-                '}';
+        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
+
+        if(getID() == null)
+        {
+            return subject;
+        }
+
+        return  formatter.format(start) + " - " + formatter.format(end);
     }
 
     @Override
@@ -129,6 +128,10 @@ public class Appointment {
         if(appointmentsExList.size() > 0){
             Date now = new Date();
             for(Appointment a : appointmentsExList){
+                if(a.getID() == null && a.getSubject().equals("FREE"))
+                {
+                    continue;
+                }
                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 Log.d("getCurrentAppointment", "APP " + formatter.format(a.getStart()) + " " + formatter.format(a.getEnd()) + " " + now.after(a.getStart()) + " " +  a.getEnd().after(now));
                 Log.d("getCurrentAppointment", "CURRENT " + formatter.format(now) );
