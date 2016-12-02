@@ -17,15 +17,17 @@ public class Appointment {
     private Date end;
     private Person owner;
     private ArrayList<Person> attendees;
+    private boolean isConfirmed = false;
     public static ArrayList<Appointment> appointmentsExList = new ArrayList<>();
 
-    public Appointment(String ID, String subject, Date start, Date end, Person owner, ArrayList<Person> attendees) {
+    public Appointment(String ID, String subject, Date start, Date end, Person owner, ArrayList<Person> attendees, boolean confirmed) {
         this.ID = ID;
         this.subject = subject;
         this.start = start;
         this.end = end;
         this.owner = owner;
         this.attendees = attendees;
+        setConfirmed(confirmed);
         appointmentsExList.add(this);
     }
 
@@ -84,12 +86,13 @@ public class Appointment {
     @Override
     public String toString() {
         return "Appointment{" +
-                "ID='" + ID.substring(0,5) + '\'' +
+                "ID='" + ID + '\'' +
                 ", subject='" + subject + '\'' +
                 ", start=" + start +
                 ", end=" + end +
                 ", owner=" + owner +
                 ", attendees=" + attendees +
+                ", isConfirmed=" + isConfirmed +
                 '}';
     }
 
@@ -138,5 +141,13 @@ public class Appointment {
         }else {
             return null;
         }
+    }
+
+    public boolean isConfirmed() {
+        return isConfirmed;
+    }
+
+    public void setConfirmed(boolean confirmed) {
+        isConfirmed = confirmed;
     }
 }
