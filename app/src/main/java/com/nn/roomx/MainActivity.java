@@ -1,9 +1,17 @@
 package com.nn.roomx;
 
+import android.app.Activity;
+import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
+import android.nfc.NdefMessage;
+import android.nfc.NdefRecord;
+import android.nfc.NfcAdapter;
+import android.nfc.Tag;
+import android.nfc.tech.Ndef;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
@@ -18,12 +26,17 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.*;
+
 import com.nn.roomx.ObjClasses.Appointment;
 
 import javax.xml.datatype.Duration;
+
+import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -60,15 +73,15 @@ public class MainActivity extends AppCompatActivity {
         buttonCancel.setOnClickListener(buttonCancelListener);
 
 
-        adapter = new ArrayAdapter<Appointment>(MainActivity.this,android.R.layout.simple_list_item_1,Appointment.appointmentsExList);
-        final ListView lv= (ListView) findViewById(R.id.listView);
+        adapter = new ArrayAdapter<Appointment>(MainActivity.this, android.R.layout.simple_list_item_1, Appointment.appointmentsExList);
+        final ListView lv = (ListView) findViewById(R.id.listView);
         lv.setAdapter(adapter);
 
         lv.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(final AdapterView<?> parent, final View view, final int position, long id) {
 
-               // EditOrDelete(view, position, lv);
+                // EditOrDelete(view, position, lv);
 
                 return true;
             }
@@ -80,17 +93,17 @@ public class MainActivity extends AppCompatActivity {
 
                 Appointment toUpdate = (Appointment) lv.getItemAtPosition(position);
 
-                if(toUpdate.getID()!=null)
-                Toast.makeText(MainActivity.this, toUpdate.getSubject()+" "+toUpdate.getOwner().getName(), Toast.LENGTH_LONG).show();
-        }
+                if (toUpdate.getID() != null)
+                    Toast.makeText(MainActivity.this, toUpdate.getSubject() + " " + toUpdate.getOwner().getName(), Toast.LENGTH_LONG).show();
+            }
         });
 
         this.mHandler = new Handler();
-        this.mHandler.postDelayed(m_Runnable,500);
+        this.mHandler.postDelayed(m_Runnable, 500);
 
         setupInitAppointments();
-
-        onCreateBT();
+        setupNFC();
+        //  onCreateBT();
     }
 
     @Override
@@ -101,27 +114,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private final Runnable m_Runnable = new Runnable()
-    {
+    private final Runnable m_Runnable = new Runnable() {
         public void run()
 
         {
             //Toast.makeText(MainActivity.this,"in runnable",Toast.LENGTH_SHORT).show();
-            MainActivity.this.mHandler.postDelayed(m_Runnable, 10000);
-            dx.getMeetingsForRoom("room1@sobotka.info");
-
+           MainActivity.this.mHandler.postDelayed(m_Runnable, 10000);
+           dx.getMeetingsForRoom("room1@sobotka.info");
             setAppointmentsView();
 
         }
     };
 
 
-    private void setupInitAppointments(){
+    private void setupInitAppointments() {
         dx.getMeetingsForRoom(ROOM_ID);
         setAppointmentsView();
     }
 
-    private void setAppointmentsView(){
+    private void setAppointmentsView() {
         TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
         TextView tVstatus = (TextView) findViewById(R.id.textViewStatus);
         TextView tVhost = (TextView) findViewById(R.id.textViewHost);
@@ -137,8 +148,7 @@ public class MainActivity extends AppCompatActivity {
         Appointment active = Appointment.getCurrentAppointment();
         Log.e("SETCURRENTAPP ", "" + active);
 
-        if(active == null)
-        {
+        if (active == null) {
             tVsubj.setText("");
             tVstatus.setText("FREE");
             buttonColors.setVisibility(View.VISIBLE);
@@ -152,9 +162,7 @@ public class MainActivity extends AppCompatActivity {
             b2.setVisibility(View.INVISIBLE);
             b3.setVisibility(View.INVISIBLE);
             b1.setOnClickListener(buttonCreateListener);
-        }
-        else
-        {
+        } else {
             SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
             buttonColors.setVisibility(View.INVISIBLE);
             tVsubj.setText(active.getSubject());
@@ -164,12 +172,9 @@ public class MainActivity extends AppCompatActivity {
             tVend.setText(formatter.format(active.getEnd()));
 
             b1.setText("START");
-            if(active.isConfirmed())
-            {
+            if (active.isConfirmed()) {
                 b1.setVisibility(View.INVISIBLE);
-            }
-            else
-            {
+            } else {
                 b1.setVisibility(View.VISIBLE);
             }
 
@@ -180,24 +185,24 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void refreshAppointments(){
+    private void refreshAppointments() {
         dx.getMeetingsForRoom(ROOM_ID);
         setAppointmentsView();
-        TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
-        TextView tVstatus = (TextView) findViewById(R.id.textViewStatus);
-        TextView tVhost = (TextView) findViewById(R.id.textViewHost);
-        TextView tVstart = (TextView) findViewById(R.id.textViewStart);
-        TextView tVend = (TextView) findViewById(R.id.textViewEnd);
-        Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
-        buttonColors.setClickable(false);
-
-        tVsubj.setText("");
-        tVstatus.setText("FREE");
-        buttonColors.setVisibility(View.VISIBLE);
-        buttonColors.setBackgroundColor(Color.GREEN);
-        tVhost.setText("");
-        tVstart.setText("");
-        tVend.setText("");
+//        TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
+//        TextView tVstatus = (TextView) findViewById(R.id.textViewStatus);
+//        TextView tVhost = (TextView) findViewById(R.id.textViewHost);
+//        TextView tVstart = (TextView) findViewById(R.id.textViewStart);
+//        TextView tVend = (TextView) findViewById(R.id.textViewEnd);
+//        Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
+//        buttonColors.setClickable(false);
+//
+//        tVsubj.setText("");
+//        tVstatus.setText("FREE");
+//        buttonColors.setVisibility(View.VISIBLE);
+//        buttonColors.setBackgroundColor(Color.GREEN);
+//        tVhost.setText("");
+//        tVstart.setText("");
+//        tVend.setText("");
 
     }
 
@@ -234,38 +239,11 @@ public class MainActivity extends AppCompatActivity {
             final String[] m_Text = {""};
             AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
             builder.setTitle("Meeting subject:");
-            final EditText input = new EditText(MainActivity.this);
+            builder.setTitle("Create appointment? Enter subject and config by your id card");
+            input = new EditText(MainActivity.this);
             input.setInputType(InputType.TYPE_CLASS_TEXT);
             builder.setView(input);
-            builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    m_Text[0] = input.getText().toString();
-                    Log.v("RoomX",m_Text[0]);
 
-                    if(m_Text[0] == "")
-                    {
-                        return;
-                    }
-
-                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    Date d = new Date();
-                    Calendar c = Calendar.getInstance();
-                    c.setTime(new Date());
-                    c.set(java.util.Calendar.SECOND, 0);
-                    c.set(java.util.Calendar.MILLISECOND, 0);
-
-                    c.add(Calendar.MINUTE, -2);
-                    Date now = c.getTime();
-                    Log.v("RoomX","COS JEST NIE TYEGES");
-                    c.add(Calendar.MINUTE, 30);
-
-                    dx.manualCreate("administrator@sobotka.info", ROOM_ID, m_Text[0], now, c.getTime(), MainActivity.this);
-
-
-                    dialog.dismiss();
-                }
-            });
             builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
@@ -273,8 +251,10 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            builder.show();
-            
+            createAlert = builder.create();
+            alertAction = "Create";
+            createAlert.show();
+
         }
     };
 
@@ -283,14 +263,13 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
 
-            dx.confirmStarted(Appointment.appointmentsExList.get(0).getOwner().getID(),Appointment.appointmentsExList.get(0).getID(),MainActivity.this);
+            dx.confirmStarted(Appointment.appointmentsExList.get(0).getOwner().getID(), Appointment.appointmentsExList.get(0).getID(), MainActivity.this);
             Button b1 = (Button) findViewById(R.id.buttonStart);
             b1.setVisibility(View.INVISIBLE);
             Log.v("RoomX", "");
 
-            for(Appointment ax : Appointment.appointmentsExList)
-            {
-                Log.v("RoomX",ax.toString());
+            for (Appointment ax : Appointment.appointmentsExList) {
+                Log.v("RoomX", ax.toString());
             }
         }
     };
@@ -313,16 +292,34 @@ public class MainActivity extends AppCompatActivity {
             alertAction = "Cancel";
             cancelAlert.show();
 
-        //    dx.cancel("Administrator@sobotka.info", Appointment.getCurrentAppointment().getID(), MainActivity.this);
-        //    refreshAppointments();
+            //    dx.cancel("Administrator@sobotka.info", Appointment.getCurrentAppointment().getID(), MainActivity.this);
+            //    refreshAppointments();
 
         }
     };
 
-    private void tryCancel(String memberID){
+    private void tryCancel(String memberID) {
         dx.cancel(memberID, Appointment.getCurrentAppointment().getID(), MainActivity.this);
         refreshAppointments();
     }
+
+    private void tryCreateMeeting(String memberID){
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date d = new Date();
+        Calendar c = Calendar.getInstance();
+        c.setTime(new Date());
+        c.set(java.util.Calendar.SECOND, 0);
+        c.set(java.util.Calendar.MILLISECOND, 0);
+
+        c.add(Calendar.MINUTE, -2);
+        Date now = c.getTime();
+        Log.v("RoomX", "COS JEST NIE TYEGES");
+        c.add(Calendar.MINUTE, 30);
+
+        dx.manualCreate(memberID, ROOM_ID, input.getText().toString(), now, c.getTime(), MainActivity.this);
+        refreshAppointments();
+    }
+
 
     View.OnClickListener buttonFinishListener = new View.OnClickListener() {
         @Override
@@ -342,77 +339,201 @@ public class MainActivity extends AppCompatActivity {
         MainActivity.currentAppointment = currentAppointment;
     }
 
-
-    /**
-     *
-     *
-     *
-     * BT
-     *
-     *
-     *
-     */
-
-    private AlertDialog cancelAlert;
-    private String alertAction = "";
-
-    private static final int REQUEST_CONNECT_DEVICE = 1;
-    private static final int REQUEST_ENABLE_BT = 2;
-    private BluetoothAdapter mBluetoothAdapter = null;
-    // Member object for the chat services
-    private BluetoothChatService mChatService = null;
-
-    private static final String TAG = "BluetoothChat";
-    private static final boolean D = true;
-    // Message types sent from the BluetoothChatService Handler
-    public static final int MESSAGE_STATE_CHANGE = 1;
-    public static final int MESSAGE_READ = 2;
-    public static final int MESSAGE_WRITE = 3;
-    public static final int MESSAGE_DEVICE_NAME = 4;
-    public static final int MESSAGE_TOAST = 5;
-    // Key names received from the BluetoothChatService Handler
-    public static final String DEVICE_NAME = "device_name";
-    public static final String TOAST = "toast";
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.scan:
-                // Launch the DeviceListActivity to see devices and do scan
-                Intent serverIntent = new Intent(this, DeviceListActivity.class);
-                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
-                return true;
-            case R.id.discoverable:
-                // Ensure this device is discoverable by others
-                ensureDiscoverable();
-                return true;
+    public void setupNFC() {
+        mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
+        if (!checkNFCenabled()){
+            Toast.makeText(this, "This device doesn't support NFC.", Toast.LENGTH_LONG).show();
+            return;
         }
-        return false;
+        //Toast.makeText(this, "NFC enabled", Toast.LENGTH_LONG).show();
+        handleIntent(getIntent());
     }
 
-    private void ensureDiscoverable() {
-        if (mBluetoothAdapter.getScanMode() !=
-                BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
-            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-            discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-            startActivity(discoverableIntent);
+    private boolean checkNFCenabled() {
+        if (mNfcAdapter == null) {
+            Toast.makeText(this, "This device doesn't support NFC.", Toast.LENGTH_LONG).show();
+            finish();
+            return false;
+        }
+
+        if (!mNfcAdapter.isEnabled()) {
+            Toast.makeText(this, "NFC disabled", Toast.LENGTH_LONG).show();
+            return false;
+        }
+        return true;
+    }
+
+    private void handleIntent(Intent intent) {
+        String action = intent.getAction();
+        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
+
+            String type = intent.getType();
+            if (MIME_TEXT_PLAIN.equals(type)) {
+
+                Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+//                Toast.makeText(this, "detected", Toast.LENGTH_SHORT).show();
+                AsyncTask<Tag, Void, String> execute = new NdefReaderTask().execute(tag);
+                try {
+                    String result = execute.get();
+                    tryConfirm(result);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
+
+
+            } else {
+                Log.d(TAG2, "Wrong mime type: " + type);
+            }
+        } else if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
+            Toast.makeText(this, "tech discovered", Toast.LENGTH_LONG).show();
+            // In case we would still use the Tech Discovered Intent
+            Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+            String[] techList = tag.getTechList();
+            String searchedTech = Ndef.class.getName();
+
+            for (String tech : techList) {
+                if (searchedTech.equals(tech)) {
+                    new NdefReaderTask().execute(tag);
+                    break;
+                }
+            }
+        }
+    }
+
+
+    public static final String TAG2 = "NfcDemo";
+    public static final String MIME_TEXT_PLAIN = "text/plain";
+    private AlertDialog cancelAlert;
+    private AlertDialog createAlert;
+    private String alertAction = "";
+    private EditText input ;
+
+    private NfcAdapter mNfcAdapter;
+
+
+    @Override
+    public synchronized void onResume() {
+        super.onResume();
+        if (true) Log.e(TAG2, "+ ON RESUME +");
+        setupForegroundDispatch(this, mNfcAdapter);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+
+        handleIntent(intent);
+    }
+
+    public static void setupForegroundDispatch(final Activity activity, NfcAdapter adapter) {
+        final Intent intent = new Intent(activity.getApplicationContext(), activity.getClass());
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        final PendingIntent pendingIntent = PendingIntent.getActivity(activity.getApplicationContext(), 0, intent, 0);
+
+        IntentFilter[] filters = new IntentFilter[1];
+        String[][] techList = new String[][]{};
+
+        // Notice that this is the same filter as in our manifest.
+        filters[0] = new IntentFilter();
+        filters[0].addAction(NfcAdapter.ACTION_NDEF_DISCOVERED);
+        filters[0].addCategory(Intent.CATEGORY_DEFAULT);
+        try {
+            filters[0].addDataType(MIME_TEXT_PLAIN);
+        } catch (IntentFilter.MalformedMimeTypeException e) {
+            throw new RuntimeException("Check your mime type.");
+        }
+
+        adapter.enableForegroundDispatch(activity, pendingIntent, filters, techList);
+    }
+
+
+
+    private class NdefReaderTask extends AsyncTask<Tag, Void, String> {
+
+        @Override
+        protected String doInBackground(Tag... params) {
+            Tag tag = params[0];
+
+            Ndef ndef = Ndef.get(tag);
+            if (ndef == null) {
+                // NDEF is not supported by this Tag.
+                return null;
+            }
+
+            NdefMessage ndefMessage = ndef.getCachedNdefMessage();
+
+            NdefRecord[] records = ndefMessage.getRecords();
+            for (NdefRecord ndefRecord : records) {
+                if (ndefRecord.getTnf() == NdefRecord.TNF_WELL_KNOWN && Arrays.equals(ndefRecord.getType(), NdefRecord.RTD_TEXT)) {
+                    try {
+                        return readText(ndefRecord);
+                    } catch (UnsupportedEncodingException e) {
+                        Log.e(TAG2, "Unsupported Encoding", e);
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private String readText(NdefRecord record) throws UnsupportedEncodingException {
+        /*
+         * See NFC forum specification for "Text Record Type Definition" at 3.2.1
+         *
+         * http://www.nfc-forum.org/specs/
+         *
+         * bit_7 defines encoding
+         * bit_6 reserved for future use, must be 0
+         * bit_5..0 length of IANA language code
+         */
+
+            byte[] payload = record.getPayload();
+
+            // Get the Text Encoding
+            String textEncoding = ((payload[0] & 128) == 0) ? "UTF-8" : "UTF-16";
+
+            // Get the Language Code
+            int languageCodeLength = payload[0] & 0063;
+
+            // String languageCode = new String(payload, 1, languageCodeLength, "US-ASCII");
+            // e.g. "en"
+
+            // Get the Text
+            return new String(payload, languageCodeLength + 1, payload.length - languageCodeLength - 1, textEncoding);
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            if (result != null) {
+                // mTextView.setText("Read content: " + result);
+//                sendMessage("Read content: " + result);
+
+
+                Toast.makeText(getApplicationContext(), "Messeage from nfc "
+                        + result, Toast.LENGTH_SHORT).show();
+                //    tryConfirm(result);
+            }
         }
     }
 
     private void tryConfirm(String userID){
         Log.e("TryConfirm", alertAction +  "Confirm " + userID);
 
-        if(cancelAlert != null){
-            alertAction = "";
-            cancelAlert.hide();
-            cancelAlert = null;
-            tryCancel(userID);
-
-
-        }else {
-            if(cancelAlert != null) {
+        if(!"".equals(alertAction)){
+            if("Cancel".equals(alertAction)){
+                alertAction = "";
                 cancelAlert.hide();
+                cancelAlert = null;
+                tryCancel(userID);
+            }else if ("Create".equals(alertAction)){
+                alertAction = "";
+                createAlert.hide();
+                createAlert = null;
+                tryCreateMeeting(userID);
             }
+        }else {
             Appointment active = Appointment.getCurrentAppointment();
             if (active == null) {
                 Toast.makeText(getApplicationContext(), "There is no meeting at this moment ", Toast.LENGTH_SHORT).show();
@@ -423,68 +544,4 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void onCreateBT(){
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        // If the adapter is null, then Bluetooth is not supported
-        if (mBluetoothAdapter == null) {
-            Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
-
-        mChatService = new BluetoothChatService(this, mHandlerBT);
-    }
-
-    @Override
-    public synchronized void onResume() {
-        super.onResume();
-        if (D) Log.e(TAG, "+ ON RESUME +");
-        // Performing this check in onResume() covers the case in which BT was
-        // not enabled during onStart(), so we were paused to enable it...
-        // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
-        if (mChatService != null) {
-            // Only if the state is STATE_NONE, do we know that we haven't started already
-            if (mChatService.getState() == BluetoothChatService.STATE_NONE) {
-                // Start the Bluetooth chat services
-                mChatService.start();
-            }
-        }
-    }
-
-    private final Handler mHandlerBT= new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MESSAGE_STATE_CHANGE:
-                    if (D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
-                    switch (msg.arg1) {
-
-                    }
-                    break;
-                case MESSAGE_WRITE:
-                    byte[] writeBuf = (byte[]) msg.obj;
-                    // construct a string from the buffer
-
-                    break;
-                case MESSAGE_READ:
-                    byte[] readBuf = (byte[]) msg.obj;
-                    // construct a string from the valid bytes in the buffer
-                    String readMessage = new String(readBuf, 0, msg.arg1);
-//                    Toast.makeText(getApplicationContext(), "Connected to "
-//                            + readMessage, Toast.LENGTH_SHORT).show();
-                    tryConfirm(readMessage.replace("Read content: ", ""));
-                    break;
-                case MESSAGE_DEVICE_NAME:
-                    // save the connected device's name
-                    String mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
-                    Toast.makeText(getApplicationContext(), "Connected to "
-                            + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
-                    break;
-                case MESSAGE_TOAST:
-                    Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
-                            Toast.LENGTH_SHORT).show();
-                    break;
-            }
-        }
-    };
 }

@@ -27,6 +27,8 @@ public class DataExchange {
     SyncHttpClient client = new SyncHttpClient();
     JSONParser jsonparser = new JSONParser();
 
+    private final String URL = "http://192.168.100.105:8080";
+
     public DataExchange() {
     }
 
@@ -35,7 +37,7 @@ public class DataExchange {
 
         params.put("room", roomId);
 
-        client.get("http://192.168.103.100:8080/MeetProxy/services/appointment", params, new AsyncHttpResponseHandler() {
+        client.get(URL + "/MeetProxy/services/appointment", params, new AsyncHttpResponseHandler() {
             // When the response returned by REST has Http response code '200'
             @Override
             public void onSuccess(String response) {
@@ -132,7 +134,7 @@ public class DataExchange {
         params.put("appointmentID", meetingID);
         params.put("memberID", ziomID);
 
-        client.get("http://192.168.103.100:8080/MeetProxy/services/appointment/confirm", params, new AsyncHttpResponseHandler() {
+        client.get(URL +  "/MeetProxy/services/appointment/confirm", params, new AsyncHttpResponseHandler() {
             // When the response returned by REST has Http response code '200'
             @Override
             public void onSuccess(String response) {
@@ -169,7 +171,7 @@ public class DataExchange {
         params.put("appointmentID", meetingID);
         params.put("memberID", ziomID);
 
-        client.get("http://192.168.103.100:8080/MeetProxy/services/appointment/cancel", params, new AsyncHttpResponseHandler() {
+        client.get(URL + "/MeetProxy/services/appointment/cancel", params, new AsyncHttpResponseHandler() {
             // When the response returned by REST has Http response code '200'
             @Override
             public void onSuccess(String response) {
@@ -209,7 +211,7 @@ public class DataExchange {
         params.put("appointmentID", meetingID);
         params.put("memberID", ziomID);
 
-        client.get("http://192.168.103.100:8080/MeetProxy/services/appointment/finish", params, new AsyncHttpResponseHandler() {
+        client.get(URL +  "/MeetProxy/services/appointment/finish", params, new AsyncHttpResponseHandler() {
             // When the response returned by REST has Http response code '200'
             @Override
             public void onSuccess(String response) {
@@ -251,7 +253,7 @@ public class DataExchange {
         params.put("start", formatter.format(start));
         params.put("end", formatter.format(end));
 
-        client.get("http://192.168.103.100:8080/MeetProxy/services/appointment/create", params, new AsyncHttpResponseHandler() {
+        client.get(URL +  "/MeetProxy/services/appointment/create", params, new AsyncHttpResponseHandler() {
             // When the response returned by REST has Http response code '200'
             @Override
             public void onSuccess(String response) {
