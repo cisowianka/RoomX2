@@ -2,7 +2,6 @@ package com.nn.roomx;
 
 import android.app.Activity;
 import android.app.PendingIntent;
-import android.bluetooth.BluetoothAdapter;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -14,197 +13,65 @@ import android.nfc.Tag;
 import android.nfc.tech.Ndef;
 import android.os.AsyncTask;
 import android.os.Handler;
-import android.os.Message;
 import android.os.StrictMode;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.*;
 
 import com.nn.roomx.ObjClasses.Appointment;
-
-import javax.xml.datatype.Duration;
+import com.nn.roomx.ObjClasses.ServiceResponse;
 
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends AppCompatActivity {
 
-    public static ArrayAdapter<Appointment> adapter;
-    final DataExchange dx = new DataExchange();
-    private static final boolean AUTO_HIDE = true;
-    private static final int AUTO_HIDE_DELAY_MILLIS = 3000;
-    private static final int UI_ANIMATION_DELAY = 300;
-    private final Handler mHideHandler = new Handler();
-    private View mContentView;
-    private static Appointment currentAppointment;
-    private Handler mHandler;
-
+    private static final String TAG = "RoomX";
+    private static final String MIME_TEXT_PLAIN = "text/plain";
     private static final String ROOM_ID = "room1@sobotka.info";
 
+    //TODO: should be private
+    public static ArrayAdapter<Appointment> adapter;
+
+    private DataExchange dataExchange = new DataExchange();
+    private Handler refershSchedulerHandler;
+
+    private EditText input;
+    private AlertDialog cancelAlert;
+    private AlertDialog createAlert;
+    private UserAction alertAction = UserAction.EMPTY;
+    private NfcAdapter mNfcAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-        StrictMode.setThreadPolicy(policy);
+        //TODO: remove this
+       // StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+       // StrictMode.setThreadPolicy(policy);
 
+        initViewHandlers();
 
-        Button confirmCreateButton = (Button) findViewById(R.id.buttonStart);
-        confirmCreateButton.setOnClickListener(button3confirmListener);
+        this.refershSchedulerHandler = new Handler();
+        this.refershSchedulerHandler.postDelayed(refreshScheduler, 500);
 
-        Button buttonFinish = (Button) findViewById(R.id.buttonFinish);
-        buttonFinish.setOnClickListener(buttonFinishListener);
-
-        Button buttonCancel = (Button) findViewById(R.id.buttonCancel);
-        buttonCancel.setOnClickListener(buttonCancelListener);
-
-
-        adapter = new ArrayAdapter<Appointment>(MainActivity.this, android.R.layout.simple_list_item_1, Appointment.appointmentsExList);
-        final ListView lv = (ListView) findViewById(R.id.listView);
-        lv.setAdapter(adapter);
-
-        lv.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(final AdapterView<?> parent, final View view, final int position, long id) {
-
-                // EditOrDelete(view, position, lv);
-
-                return true;
-            }
-        });
-
-        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
-                Appointment toUpdate = (Appointment) lv.getItemAtPosition(position);
-
-                if (toUpdate.getID() != null)
-                    Toast.makeText(MainActivity.this, toUpdate.getSubject() + " " + toUpdate.getOwner().getName(), Toast.LENGTH_LONG).show();
-            }
-        });
-
-        this.mHandler = new Handler();
-        this.mHandler.postDelayed(m_Runnable, 500);
-
-        setupInitAppointments();
+        refreshAppointments();
         setupNFC();
-        //  onCreateBT();
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.option_menu, menu);
-        return true;
-    }
-
-
-    private final Runnable m_Runnable = new Runnable() {
-        public void run()
-
-        {
-            //Toast.makeText(MainActivity.this,"in runnable",Toast.LENGTH_SHORT).show();
-           MainActivity.this.mHandler.postDelayed(m_Runnable, 10000);
-           dx.getMeetingsForRoom("room1@sobotka.info");
-            setAppointmentsView();
-
-        }
-    };
-
-
-    private void setupInitAppointments() {
-        dx.getMeetingsForRoom(ROOM_ID);
-        setAppointmentsView();
-    }
-
-    private void setAppointmentsView() {
-        TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
-        TextView tVstatus = (TextView) findViewById(R.id.textViewStatus);
-        TextView tVhost = (TextView) findViewById(R.id.textViewHost);
-        TextView tVstart = (TextView) findViewById(R.id.textViewStart);
-        TextView tVend = (TextView) findViewById(R.id.textViewEnd);
-        Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
-        buttonColors.setClickable(false);
-
-        Button b1 = (Button) findViewById(R.id.buttonStart);
-        Button b2 = (Button) findViewById(R.id.buttonCancel);
-        Button b3 = (Button) findViewById(R.id.buttonFinish);
-
-        Appointment active = Appointment.getCurrentAppointment();
-        Log.e("SETCURRENTAPP ", "" + active);
-
-        if (active == null) {
-            tVsubj.setText("");
-            tVstatus.setText("FREE");
-            buttonColors.setVisibility(View.VISIBLE);
-            buttonColors.setBackgroundColor(Color.GREEN);
-            tVhost.setText("");
-            tVstart.setText("");
-            tVend.setText("");
-
-            b1.setText("CREATE");
-            b1.setVisibility(View.VISIBLE);
-            b2.setVisibility(View.INVISIBLE);
-            b3.setVisibility(View.INVISIBLE);
-            b1.setOnClickListener(buttonCreateListener);
-        } else {
-            SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
-            buttonColors.setVisibility(View.INVISIBLE);
-            tVsubj.setText(active.getSubject());
-            tVstatus.setText("BUSY");
-            tVhost.setText(active.getOwner().getName());
-            tVstart.setText(formatter.format(active.getStart()));
-            tVend.setText(formatter.format(active.getEnd()));
-
-            b1.setText("START");
-            if (active.isConfirmed()) {
-                b1.setVisibility(View.INVISIBLE);
-            } else {
-                b1.setVisibility(View.VISIBLE);
-            }
-
-            b2.setVisibility(View.VISIBLE);
-            b3.setVisibility(View.VISIBLE);
-            b1.setOnClickListener(button3confirmListener);
-        }
-
-    }
-
-    private void refreshAppointments() {
-        dx.getMeetingsForRoom(ROOM_ID);
-        setAppointmentsView();
-//        TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
-//        TextView tVstatus = (TextView) findViewById(R.id.textViewStatus);
-//        TextView tVhost = (TextView) findViewById(R.id.textViewHost);
-//        TextView tVstart = (TextView) findViewById(R.id.textViewStart);
-//        TextView tVend = (TextView) findViewById(R.id.textViewEnd);
-//        Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
-//        buttonColors.setClickable(false);
-//
-//        tVsubj.setText("");
-//        tVstatus.setText("FREE");
-//        buttonColors.setVisibility(View.VISIBLE);
-//        buttonColors.setBackgroundColor(Color.GREEN);
-//        tVhost.setText("");
-//        tVstart.setText("");
-//        tVend.setText("");
-
-    }
 
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
@@ -212,31 +79,10 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private class HttpRequestTask extends AsyncTask<Void, Void, Object> {
-        @Override
-        protected Object doInBackground(Void... params) {
-            try {
-                final String url = "http://rest-service.guides.spring.io/greeting";
-
-            } catch (Exception e) {
-                Log.e("RoomX", e.getMessage(), e);
-            }
-
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Object greeting) {
-
-        }
-
-    }
-
-    View.OnClickListener buttonCreateListener = new View.OnClickListener() {
+    private View.OnClickListener buttonCreateListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
 
-            final String[] m_Text = {""};
             AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
             builder.setTitle("Meeting subject:");
             builder.setTitle("Create appointment? Enter subject and config by your id card");
@@ -244,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
             input.setInputType(InputType.TYPE_CLASS_TEXT);
             builder.setView(input);
 
-            builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.cancel();
@@ -252,21 +98,24 @@ public class MainActivity extends AppCompatActivity {
             });
 
             createAlert = builder.create();
-            alertAction = "Create";
+            alertAction = UserAction.CREATE;
             createAlert.show();
 
         }
     };
 
 
-    View.OnClickListener button3confirmListener = new View.OnClickListener() {
+    private View.OnClickListener button3confirmListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
 
-            dx.confirmStarted(Appointment.appointmentsExList.get(0).getOwner().getID(), Appointment.appointmentsExList.get(0).getID(), MainActivity.this);
+            try {
+                dataExchange.confirmStarted(Appointment.appointmentsExList.get(0).getOwner().getID(), Appointment.appointmentsExList.get(0).getID());
+            } catch (Exception e) {
+                handleCommunicationError(e.getMessage());
+            }
             Button b1 = (Button) findViewById(R.id.buttonStart);
             b1.setVisibility(View.INVISIBLE);
-            Log.v("RoomX", "");
 
             for (Appointment ax : Appointment.appointmentsExList) {
                 Log.v("RoomX", ax.toString());
@@ -274,8 +123,18 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private View.OnClickListener buttonFinishListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
 
-    View.OnClickListener buttonCancelListener = new View.OnClickListener() {
+            dataExchange.finish("Administrator@sobotka.info", Appointment.getCurrentAppointment().getID(), MainActivity.this);
+            refreshAppointments();
+
+        }
+    };
+
+
+    private View.OnClickListener buttonCancelListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
             Log.e("CancelButtoon", "Clicekd");
@@ -289,21 +148,27 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
             cancelAlert = builder.create();
-            alertAction = "Cancel";
+            alertAction =  UserAction.CANCEL;
             cancelAlert.show();
-
-            //    dx.cancel("Administrator@sobotka.info", Appointment.getCurrentAppointment().getID(), MainActivity.this);
-            //    refreshAppointments();
 
         }
     };
 
     private void tryCancel(String memberID) {
-        dx.cancel(memberID, Appointment.getCurrentAppointment().getID(), MainActivity.this);
-        refreshAppointments();
+        try {
+            ServiceResponse<Boolean> confirmationResponse = dataExchange.cancel(memberID, Appointment.getCurrentAppointment().getID());
+            if(confirmationResponse.isOK()){
+                Toast.makeText(getApplicationContext(), "Cancelation completed "  + memberID, Toast.LENGTH_SHORT).show();
+                refreshAppointments();
+            }else{
+                handleCommunicationError("Cancelation failed");
+            }
+        } catch (Exception e) {
+            handleCommunicationError(e.getMessage());
+        }
     }
 
-    private void tryCreateMeeting(String memberID){
+    private void tryCreateMeeting(String memberID) {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date d = new Date();
         Calendar c = Calendar.getInstance();
@@ -316,36 +181,27 @@ public class MainActivity extends AppCompatActivity {
         Log.v("RoomX", "COS JEST NIE TYEGES");
         c.add(Calendar.MINUTE, 30);
 
-        dx.manualCreate(memberID, ROOM_ID, input.getText().toString(), now, c.getTime(), MainActivity.this);
-        refreshAppointments();
-    }
-
-
-    View.OnClickListener buttonFinishListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-
-            dx.finish("Administrator@sobotka.info", Appointment.getCurrentAppointment().getID(), MainActivity.this);
-            refreshAppointments();
-
+        try {
+            ServiceResponse<Boolean> confirmationResponse =  dataExchange.create(memberID, ROOM_ID, input.getText().toString(), now, c.getTime());
+            if(confirmationResponse.isOK()){
+                Toast.makeText(getApplicationContext(), "Createion completed "  + memberID, Toast.LENGTH_SHORT).show();
+                refreshAppointments();
+            }else{
+                handleCommunicationError("Createion failed");
+            }
+        } catch (Exception e) {
+            handleCommunicationError(e.getMessage());
         }
-    };
 
-    public static Appointment getCurrentAppointment() {
-        return currentAppointment;
     }
 
-    public static void setCurrentAppointment(Appointment currentAppointment) {
-        MainActivity.currentAppointment = currentAppointment;
-    }
 
     public void setupNFC() {
         mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
-        if (!checkNFCenabled()){
+        if (!checkNFCenabled()) {
             Toast.makeText(this, "This device doesn't support NFC.", Toast.LENGTH_LONG).show();
             return;
         }
-        //Toast.makeText(this, "NFC enabled", Toast.LENGTH_LONG).show();
         handleIntent(getIntent());
     }
 
@@ -371,7 +227,6 @@ public class MainActivity extends AppCompatActivity {
             if (MIME_TEXT_PLAIN.equals(type)) {
 
                 Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
-//                Toast.makeText(this, "detected", Toast.LENGTH_SHORT).show();
                 AsyncTask<Tag, Void, String> execute = new NdefReaderTask().execute(tag);
                 try {
                     String result = execute.get();
@@ -384,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
 
 
             } else {
-                Log.d(TAG2, "Wrong mime type: " + type);
+                Log.d(TAG, "Wrong mime type: " + type);
             }
         } else if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
             Toast.makeText(this, "tech discovered", Toast.LENGTH_LONG).show();
@@ -403,20 +258,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public static final String TAG2 = "NfcDemo";
-    public static final String MIME_TEXT_PLAIN = "text/plain";
-    private AlertDialog cancelAlert;
-    private AlertDialog createAlert;
-    private String alertAction = "";
-    private EditText input ;
-
-    private NfcAdapter mNfcAdapter;
-
-
     @Override
     public synchronized void onResume() {
         super.onResume();
-        if (true) Log.e(TAG2, "+ ON RESUME +");
         setupForegroundDispatch(this, mNfcAdapter);
     }
 
@@ -449,7 +293,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     private class NdefReaderTask extends AsyncTask<Tag, Void, String> {
 
         @Override
@@ -458,7 +301,6 @@ public class MainActivity extends AppCompatActivity {
 
             Ndef ndef = Ndef.get(tag);
             if (ndef == null) {
-                // NDEF is not supported by this Tag.
                 return null;
             }
 
@@ -470,7 +312,7 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         return readText(ndefRecord);
                     } catch (UnsupportedEncodingException e) {
-                        Log.e(TAG2, "Unsupported Encoding", e);
+                        Log.e(TAG, "Unsupported Encoding", e);
                     }
                 }
             }
@@ -479,69 +321,234 @@ public class MainActivity extends AppCompatActivity {
         }
 
         private String readText(NdefRecord record) throws UnsupportedEncodingException {
-        /*
-         * See NFC forum specification for "Text Record Type Definition" at 3.2.1
-         *
-         * http://www.nfc-forum.org/specs/
-         *
-         * bit_7 defines encoding
-         * bit_6 reserved for future use, must be 0
-         * bit_5..0 length of IANA language code
-         */
 
             byte[] payload = record.getPayload();
 
-            // Get the Text Encoding
             String textEncoding = ((payload[0] & 128) == 0) ? "UTF-8" : "UTF-16";
 
-            // Get the Language Code
             int languageCodeLength = payload[0] & 0063;
 
-            // String languageCode = new String(payload, 1, languageCodeLength, "US-ASCII");
-            // e.g. "en"
-
-            // Get the Text
             return new String(payload, languageCodeLength + 1, payload.length - languageCodeLength - 1, textEncoding);
         }
 
         @Override
         protected void onPostExecute(String result) {
             if (result != null) {
-                // mTextView.setText("Read content: " + result);
-//                sendMessage("Read content: " + result);
-
-
-                Toast.makeText(getApplicationContext(), "Messeage from nfc "
+                Toast.makeText(getApplicationContext(), getResources().getString(R.string.msg_from_nfc) + " "
                         + result, Toast.LENGTH_SHORT).show();
-                //    tryConfirm(result);
             }
         }
     }
 
-    private void tryConfirm(String userID){
-        Log.e("TryConfirm", alertAction +  "Confirm " + userID);
+    private void tryConfirm(String userID) {
+        Log.e("TryConfirm", alertAction + "Confirm " + userID);
 
-        if(!"".equals(alertAction)){
-            if("Cancel".equals(alertAction)){
-                alertAction = "";
+        if (!UserAction.EMPTY.equals(alertAction)) {
+            if (UserAction.CANCEL.equals(alertAction)) {
+                alertAction = UserAction.EMPTY;
                 cancelAlert.hide();
                 cancelAlert = null;
                 tryCancel(userID);
-            }else if ("Create".equals(alertAction)){
-                alertAction = "";
+            } else if (UserAction.CREATE.equals(alertAction)) {
+                alertAction = UserAction.EMPTY;
                 createAlert.hide();
                 createAlert = null;
                 tryCreateMeeting(userID);
             }
-        }else {
+        } else {
             Appointment active = Appointment.getCurrentAppointment();
             if (active == null) {
-                Toast.makeText(getApplicationContext(), "There is no meeting at this moment ", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), R.string.no_meeting, Toast.LENGTH_SHORT).show();
             } else {
-                dx.confirmStarted(userID, active.getID(), MainActivity.this);
-                Toast.makeText(getApplicationContext(), "Confirmation for " + userID, Toast.LENGTH_SHORT).show();
+                try {
+                    ServiceResponse<Boolean> confirmationResponse = dataExchange.confirmStarted(userID, active.getID());
+                    if(confirmationResponse.isOK()){
+                        Toast.makeText(getApplicationContext(), getResources().getString(R.string.confirmation_for)  + userID, Toast.LENGTH_SHORT).show();
+                    }else{
+                        handleCommunicationError("Confirmation failed");
+                    }
+                } catch (Exception e) {
+                    handleCommunicationError(e.getMessage());
+                }
             }
         }
+    }
+
+    private final Runnable refreshScheduler = new Runnable() {
+        public void run() {
+            MainActivity.this.refershSchedulerHandler.postDelayed(refreshScheduler, 10000);
+            refreshAppointments();
+
+        }
+    };
+
+
+    private void initViewHandlers() {
+        Button confirmCreateButton = (Button) findViewById(R.id.buttonStart);
+        confirmCreateButton.setOnClickListener(button3confirmListener);
+
+        Button buttonFinish = (Button) findViewById(R.id.buttonFinish);
+        buttonFinish.setOnClickListener(buttonFinishListener);
+
+        Button buttonCancel = (Button) findViewById(R.id.buttonCancel);
+        buttonCancel.setOnClickListener(buttonCancelListener);
+
+        adapter = new ArrayAdapter<Appointment>(MainActivity.this, android.R.layout.simple_list_item_1, Appointment.appointmentsExList);
+        final ListView lv = (ListView) findViewById(R.id.listView);
+        lv.setAdapter(adapter);
+
+
+        lv.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(final AdapterView<?> parent, final View view, final int position, long id) {
+                return true;
+            }
+        });
+
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                Appointment toUpdate = (Appointment) lv.getItemAtPosition(position);
+
+                if (toUpdate.getID() != null)
+                    Toast.makeText(MainActivity.this, toUpdate.getSubject() + " " + toUpdate.getOwner().getName(), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void refreshAppointments() {
+        //TODO: wrap appointments
+        try {
+            ServiceResponse<List<Appointment>> meetingsForRoom = dataExchange.getMeetingsForRoom(ROOM_ID);
+            if (meetingsForRoom.isOK()) {
+                insertDummyFreeAppointments(Appointment.appointmentsExList);
+                MainActivity.adapter.notifyDataSetChanged();
+                setAppointmentsView();
+            }else{
+                handleCommunicationError(meetingsForRoom.getMessage());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            handleCommunicationError(e.getMessage());
+        }
+
+    }
+
+    private void handleCommunicationError(String msg) {
+        Toast.makeText(this, getResources().getString(R.string.communication_error) + msg, Toast.LENGTH_LONG).show();
+    }
+
+    private void insertDummyFreeAppointments(ArrayList<Appointment> appointmentsExList) {
+
+        if (appointmentsExList.size() == 0) {
+            return;
+        }
+
+        //od tej chwili
+        Date now = new Date();
+
+        ArrayList<Date> borders = new ArrayList<Date>();
+
+        for (Appointment normal : appointmentsExList) {
+            borders.add(normal.getStart());
+            borders.add(normal.getEnd());
+        }
+
+        borders.remove(0);
+
+        if (appointmentsExList.size() == 1) {
+            Appointment dummy = new Appointment();
+            dummy.setSubject(getResources().getString(R.string.free));
+            dummy.setStart(now);
+            dummy.setEnd(appointmentsExList.get(0).getStart());
+        }
+
+        for (int i = 0; i < borders.size(); i = i + 2) {
+            if (i + 1 < borders.size() && borders.get(i).equals(borders.get(i + 1))) {
+                continue;
+            }
+
+
+            Appointment dummy = new Appointment();
+            dummy.setSubject(getResources().getString(R.string.free));
+            dummy.setStart(borders.get(i));
+
+            if (i + 1 < borders.size()) {
+                dummy.setEnd(borders.get(i + 1));
+            }
+
+        }
+
+        Collections.sort(appointmentsExList, new Comparator<Appointment>() {
+            @Override
+            public int compare(Appointment t0, Appointment t1) {
+
+                if (t0.getStart().after(t1.getStart())) {
+                    return 1;
+                }
+
+                return -1;
+            }
+        });
+    }
+
+
+    private void setAppointmentsView() {
+        TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
+        TextView tVstatus = (TextView) findViewById(R.id.textViewStatus);
+        TextView tVhost = (TextView) findViewById(R.id.textViewHost);
+        TextView tVstart = (TextView) findViewById(R.id.textViewStart);
+        TextView tVend = (TextView) findViewById(R.id.textViewEnd);
+        Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
+        buttonColors.setClickable(false);
+
+        Button b1 = (Button) findViewById(R.id.buttonStart);
+        Button b2 = (Button) findViewById(R.id.buttonCancel);
+        Button b3 = (Button) findViewById(R.id.buttonFinish);
+
+        Appointment active = Appointment.getCurrentAppointment();
+        Log.e("SETCURRENTAPP ", "" + active);
+
+        if (active == null) {
+            tVsubj.setText("");
+            tVstatus.setText(R.string.free);
+            buttonColors.setVisibility(View.VISIBLE);
+            buttonColors.setBackgroundColor(Color.GREEN);
+            tVhost.setText("");
+            tVstart.setText("");
+            tVend.setText("");
+
+            b1.setText(R.string.create);
+            b1.setVisibility(View.VISIBLE);
+            b2.setVisibility(View.INVISIBLE);
+            b3.setVisibility(View.INVISIBLE);
+            b1.setOnClickListener(buttonCreateListener);
+        } else {
+            SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
+            buttonColors.setVisibility(View.INVISIBLE);
+            tVsubj.setText(active.getSubject());
+            tVstatus.setText(R.string.busy);
+            tVhost.setText(active.getOwner().getName());
+            tVstart.setText(formatter.format(active.getStart()));
+            tVend.setText(formatter.format(active.getEnd()));
+
+            b1.setText(R.string.start);
+            if (active.isConfirmed()) {
+                b1.setVisibility(View.INVISIBLE);
+            } else {
+                b1.setVisibility(View.VISIBLE);
+            }
+
+            b2.setVisibility(View.VISIBLE);
+            b3.setVisibility(View.VISIBLE);
+            b1.setOnClickListener(button3confirmListener);
+        }
+    }
+
+    private enum UserAction {
+        CANCEL, EMPTY, CREATE
+
     }
 
 }
