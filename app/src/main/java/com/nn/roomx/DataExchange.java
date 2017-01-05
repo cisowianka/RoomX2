@@ -76,40 +76,13 @@ public class DataExchange {
         return createResult;
     }
 
+    public ServiceResponse<Boolean> finish(String userId, String meetingID) throws Exception {
+        AsyncTask<String, Void, ServiceResponse<Boolean>> finishTask = new FinishTask().execute(userId, meetingID);
 
-    public boolean finish(String ziomID, String meetingID, final MainActivity mainActivity) {
-        params.put("appointmentID", meetingID);
-        params.put("memberID", ziomID);
+        ServiceResponse<Boolean> finishResult = finishTask.get();
 
-        client.get(URL_STRING + "/MeetProxy/services/appointment/finish", params, new AsyncHttpResponseHandler() {
-            // When the response returned by REST has Http response code '200'
-            @Override
-            public void onSuccess(String response) {
-                //Log.e("RoomX", "+++ received json  +++" + response);
-                try {
-                    if (response.equals("true")) {
-                        Toast.makeText(mainActivity, "Appointment finished", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(mainActivity, "Appointment finished ", Toast.LENGTH_SHORT).show();
-                    }
-                    //Log.e("RoomX", "+++ sucess  +++" + response);
-
-                } catch (Exception e) {
-                    Log.e("RoomX", "+++ failure catch +++" + e);
-                }
-            }
-
-            // When the response returned by REST has Http response code other than '200'
-            @Override
-            public void onFailure(int statusCode, Throwable error,
-                                  String content) {
-                Log.e(statusCode + "RoomX", "+++ failure  +++" + content);
-            }
-        });
-
-        return true;
+        return finishResult;
     }
-
 
     private class ReadAppointmentsTask extends AsyncTask<String, Void, ServiceResponse<List<Appointment>>> {
 
@@ -196,6 +169,30 @@ public class DataExchange {
             ServiceResponse<Boolean> response = new ServiceResponse<>();
             try {
                 String urlGet = URL_STRING + "/MeetProxy/services/appointment/create?" + addParamToURL("roomID", roomId) + "&" + addParamToURL("memberID", userId) + "&" + addParamToURL("subject", subject) + "&" + addParamToURL("start", start) + "&" + addParamToURL("end", end);
+                String respString = downloadUrl(new URL(urlGet));
+                response.ok();
+                response.setResponseObject(true);
+                return response;
+            } catch (Exception e) {
+                response.fail();
+                response.setResponseObject(false);
+                response.setMessage(e.getMessage());
+                e.printStackTrace();
+                return response;
+            }
+        }
+    }
+
+    private class FinishTask extends AsyncTask<String, Void, ServiceResponse<Boolean>> {
+
+        @Override
+        protected ServiceResponse<Boolean> doInBackground(String... params) {
+            String memberID = params[0];
+            String appointmentID = params[1];
+
+            ServiceResponse<Boolean> response = new ServiceResponse<>();
+            try {
+                String urlGet = URL_STRING + "/MeetProxy/services/appointment/finish?" + addParamToURL("memberID", memberID) + "&" + addParamToURL("appointmentID", appointmentID);
                 String respString = downloadUrl(new URL(urlGet));
                 response.ok();
                 response.setResponseObject(true);

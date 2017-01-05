@@ -49,8 +49,8 @@ public class MainActivity extends AppCompatActivity {
     private Handler refershSchedulerHandler;
 
     private EditText input;
-    private AlertDialog cancelAlert;
-    private AlertDialog createAlert;
+    private AlertDialog confirmAlert;
+//    private AlertDialog createAlert;
     private UserAction alertAction = UserAction.EMPTY;
     private NfcAdapter mNfcAdapter;
 
@@ -60,8 +60,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //TODO: remove this
-       // StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-       // StrictMode.setThreadPolicy(policy);
+        // StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        // StrictMode.setThreadPolicy(policy);
 
         initViewHandlers();
 
@@ -97,9 +97,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            createAlert = builder.create();
+            confirmAlert = builder.create();
             alertAction = UserAction.CREATE;
-            createAlert.show();
+            confirmAlert.show();
 
         }
     };
@@ -126,9 +126,18 @@ public class MainActivity extends AppCompatActivity {
     private View.OnClickListener buttonFinishListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Finish appointment?")
+                    .setMessage("User your card to confirm")
+                    .setNegativeButton("Close", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            dialog.cancel();
+                        }
+                    });
+            confirmAlert = builder.create();
+            alertAction = UserAction.FINISH;
+            confirmAlert.show();
 
-            dataExchange.finish("Administrator@sobotka.info", Appointment.getCurrentAppointment().getID(), MainActivity.this);
-            refreshAppointments();
 
         }
     };
@@ -147,9 +156,9 @@ public class MainActivity extends AppCompatActivity {
                             dialog.cancel();
                         }
                     });
-            cancelAlert = builder.create();
-            alertAction =  UserAction.CANCEL;
-            cancelAlert.show();
+            confirmAlert = builder.create();
+            alertAction = UserAction.CANCEL;
+            confirmAlert.show();
 
         }
     };
@@ -157,15 +166,35 @@ public class MainActivity extends AppCompatActivity {
     private void tryCancel(String memberID) {
         try {
             ServiceResponse<Boolean> confirmationResponse = dataExchange.cancel(memberID, Appointment.getCurrentAppointment().getID());
-            if(confirmationResponse.isOK()){
-                Toast.makeText(getApplicationContext(), "Cancelation completed "  + memberID, Toast.LENGTH_SHORT).show();
+            if (confirmationResponse.isOK()) {
+                Toast.makeText(getApplicationContext(), "Cancelation completed " + memberID, Toast.LENGTH_SHORT).show();
                 refreshAppointments();
-            }else{
+            } else {
                 handleCommunicationError("Cancelation failed");
             }
         } catch (Exception e) {
             handleCommunicationError(e.getMessage());
         }
+
+        actionConfirmed();
+    }
+
+    private void tryFinishMeeting(String memberID) {
+
+        try {
+            ServiceResponse<Boolean> confirmationResponse = dataExchange.finish(memberID, Appointment.getCurrentAppointment().getID());
+            if (confirmationResponse.isOK()) {
+                Toast.makeText(getApplicationContext(), "Finishing completed ", Toast.LENGTH_SHORT).show();
+                refreshAppointments();
+            } else {
+                handleCommunicationError("Finishing failed");
+            }
+        } catch (Exception e) {
+            handleCommunicationError(e.getMessage());
+        }
+
+        actionConfirmed();
+
     }
 
     private void tryCreateMeeting(String memberID) {
@@ -182,19 +211,20 @@ public class MainActivity extends AppCompatActivity {
         c.add(Calendar.MINUTE, 30);
 
         try {
-            ServiceResponse<Boolean> confirmationResponse =  dataExchange.create(memberID, ROOM_ID, input.getText().toString(), now, c.getTime());
-            if(confirmationResponse.isOK()){
-                Toast.makeText(getApplicationContext(), "Createion completed "  + memberID, Toast.LENGTH_SHORT).show();
+            ServiceResponse<Boolean> confirmationResponse = dataExchange.create(memberID, ROOM_ID, input.getText().toString(), now, c.getTime());
+            if (confirmationResponse.isOK()) {
+                Toast.makeText(getApplicationContext(), "Createion completed " + memberID, Toast.LENGTH_SHORT).show();
                 refreshAppointments();
-            }else{
+            } else {
                 handleCommunicationError("Createion failed");
             }
         } catch (Exception e) {
             handleCommunicationError(e.getMessage());
         }
 
-    }
+        actionConfirmed();
 
+    }
 
     public void setupNFC() {
         mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
@@ -266,7 +296,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onNewIntent(Intent intent) {
-
         handleIntent(intent);
     }
 
@@ -292,52 +321,10 @@ public class MainActivity extends AppCompatActivity {
         adapter.enableForegroundDispatch(activity, pendingIntent, filters, techList);
     }
 
-
-    private class NdefReaderTask extends AsyncTask<Tag, Void, String> {
-
-        @Override
-        protected String doInBackground(Tag... params) {
-            Tag tag = params[0];
-
-            Ndef ndef = Ndef.get(tag);
-            if (ndef == null) {
-                return null;
-            }
-
-            NdefMessage ndefMessage = ndef.getCachedNdefMessage();
-
-            NdefRecord[] records = ndefMessage.getRecords();
-            for (NdefRecord ndefRecord : records) {
-                if (ndefRecord.getTnf() == NdefRecord.TNF_WELL_KNOWN && Arrays.equals(ndefRecord.getType(), NdefRecord.RTD_TEXT)) {
-                    try {
-                        return readText(ndefRecord);
-                    } catch (UnsupportedEncodingException e) {
-                        Log.e(TAG, "Unsupported Encoding", e);
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        private String readText(NdefRecord record) throws UnsupportedEncodingException {
-
-            byte[] payload = record.getPayload();
-
-            String textEncoding = ((payload[0] & 128) == 0) ? "UTF-8" : "UTF-16";
-
-            int languageCodeLength = payload[0] & 0063;
-
-            return new String(payload, languageCodeLength + 1, payload.length - languageCodeLength - 1, textEncoding);
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-            if (result != null) {
-                Toast.makeText(getApplicationContext(), getResources().getString(R.string.msg_from_nfc) + " "
-                        + result, Toast.LENGTH_SHORT).show();
-            }
-        }
+    private void actionConfirmed(){
+        alertAction = UserAction.EMPTY;
+        confirmAlert.hide();
+        confirmAlert = null;;
     }
 
     private void tryConfirm(String userID) {
@@ -345,15 +332,20 @@ public class MainActivity extends AppCompatActivity {
 
         if (!UserAction.EMPTY.equals(alertAction)) {
             if (UserAction.CANCEL.equals(alertAction)) {
-                alertAction = UserAction.EMPTY;
-                cancelAlert.hide();
-                cancelAlert = null;
+              //  alertAction = UserAction.EMPTY;
+              //  confirmAlert.hide();
+              //  confirmAlert = null;
                 tryCancel(userID);
             } else if (UserAction.CREATE.equals(alertAction)) {
-                alertAction = UserAction.EMPTY;
-                createAlert.hide();
-                createAlert = null;
+              //  alertAction = UserAction.EMPTY;
+              //  confirmAlert.hide();
+              //  confirmAlert = null;
                 tryCreateMeeting(userID);
+            }else if (UserAction.FINISH.equals(alertAction)) {
+              //  alertAction = UserAction.EMPTY;
+              //  confirmAlert.hide();
+              //  confirmAlert = null;
+                tryFinishMeeting(userID);
             }
         } else {
             Appointment active = Appointment.getCurrentAppointment();
@@ -362,9 +354,9 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 try {
                     ServiceResponse<Boolean> confirmationResponse = dataExchange.confirmStarted(userID, active.getID());
-                    if(confirmationResponse.isOK()){
-                        Toast.makeText(getApplicationContext(), getResources().getString(R.string.confirmation_for)  + userID, Toast.LENGTH_SHORT).show();
-                    }else{
+                    if (confirmationResponse.isOK()) {
+                        Toast.makeText(getApplicationContext(), getResources().getString(R.string.confirmation_for) + userID, Toast.LENGTH_SHORT).show();
+                    } else {
                         handleCommunicationError("Confirmation failed");
                     }
                 } catch (Exception e) {
@@ -425,7 +417,7 @@ public class MainActivity extends AppCompatActivity {
                 insertDummyFreeAppointments(Appointment.appointmentsExList);
                 MainActivity.adapter.notifyDataSetChanged();
                 setAppointmentsView();
-            }else{
+            } else {
                 handleCommunicationError(meetingsForRoom.getMessage());
             }
         } catch (Exception e) {
@@ -462,6 +454,7 @@ public class MainActivity extends AppCompatActivity {
             dummy.setSubject(getResources().getString(R.string.free));
             dummy.setStart(now);
             dummy.setEnd(appointmentsExList.get(0).getStart());
+            dummy.setVirtual(true);
         }
 
         for (int i = 0; i < borders.size(); i = i + 2) {
@@ -473,6 +466,7 @@ public class MainActivity extends AppCompatActivity {
             Appointment dummy = new Appointment();
             dummy.setSubject(getResources().getString(R.string.free));
             dummy.setStart(borders.get(i));
+            dummy.setVirtual(true);
 
             if (i + 1 < borders.size()) {
                 dummy.setEnd(borders.get(i + 1));
@@ -547,8 +541,55 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private enum UserAction {
-        CANCEL, EMPTY, CREATE
+        CANCEL, EMPTY, FINISH, CREATE
 
+    }
+
+    private class NdefReaderTask extends AsyncTask<Tag, Void, String> {
+
+        @Override
+        protected String doInBackground(Tag... params) {
+            Tag tag = params[0];
+
+            Ndef ndef = Ndef.get(tag);
+            if (ndef == null) {
+                return null;
+            }
+
+            NdefMessage ndefMessage = ndef.getCachedNdefMessage();
+
+            NdefRecord[] records = ndefMessage.getRecords();
+            for (NdefRecord ndefRecord : records) {
+                if (ndefRecord.getTnf() == NdefRecord.TNF_WELL_KNOWN && Arrays.equals(ndefRecord.getType(), NdefRecord.RTD_TEXT)) {
+                    try {
+                        return readText(ndefRecord);
+                    } catch (UnsupportedEncodingException e) {
+                        Log.e(TAG, "Unsupported Encoding", e);
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private String readText(NdefRecord record) throws UnsupportedEncodingException {
+
+            byte[] payload = record.getPayload();
+
+            String textEncoding = ((payload[0] & 128) == 0) ? "UTF-8" : "UTF-16";
+
+            int languageCodeLength = payload[0] & 0063;
+
+            return new String(payload, languageCodeLength + 1, payload.length - languageCodeLength - 1, textEncoding);
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            if (result != null) {
+                Toast.makeText(getApplicationContext(), getResources().getString(R.string.msg_from_nfc) + " "
+                        + result, Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
 }

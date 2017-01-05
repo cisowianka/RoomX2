@@ -19,6 +19,7 @@ public class Appointment {
     private ArrayList<Person> attendees;
     private boolean isConfirmed = false;
     public static ArrayList<Appointment> appointmentsExList = new ArrayList<>();
+    private boolean virtual = false;
 
     public Appointment(String ID, String subject, Date start, Date end, Person owner, ArrayList<Person> attendees, boolean confirmed) {
         this.ID = ID;
@@ -87,12 +88,11 @@ public class Appointment {
     public String toString() {
         SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
 
-        if(getID() == null)
-        {
+        if (getID() == null) {
             return subject;
         }
 
-        return  formatter.format(start) + " - " + formatter.format(end)+" "+subject;
+        return formatter.format(start) + " - " + formatter.format(end) + " " + subject;
     }
 
     @Override
@@ -125,23 +125,22 @@ public class Appointment {
     public static Appointment getCurrentAppointment() {
         Appointment result = null;
         Log.e("getCurrentAppointment", "APPoinment siz " + appointmentsExList.size());
-        if(appointmentsExList.size() > 0){
+        if (appointmentsExList.size() > 0) {
             Date now = new Date();
-            for(Appointment a : appointmentsExList){
-                if(a.getID() == null && a.getSubject().equals("FREE"))
-                {
+            for (Appointment a : appointmentsExList) {
+                if (a.isVirtual()) {
                     continue;
                 }
                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                Log.d("getCurrentAppointment", "APP " + formatter.format(a.getStart()) + " " + formatter.format(a.getEnd()) + " " + now.after(a.getStart()) + " " +  a.getEnd().after(now));
-                Log.d("getCurrentAppointment", "CURRENT " + formatter.format(now) );
+                //  Log.d("getCurrentAppointment", "APP " + formatter.format(a.getStart()) + " " + formatter.format(a.getEnd()) + " " + now.after(a.getStart()) + " " +  a.getEnd().after(now));
+                Log.d("getCurrentAppointment", "CURRENT " + a.getSubject() + " "+ a.isVirtual());
                 if (now.after(a.getStart()) && a.getEnd().after(now)) {
-                    result =  a;
+                    result = a;
                     return result;
                 }
             }
             return result;
-        }else {
+        } else {
             return null;
         }
     }
@@ -152,5 +151,13 @@ public class Appointment {
 
     public void setConfirmed(boolean confirmed) {
         isConfirmed = confirmed;
+    }
+
+    public void setVirtual(boolean virtual) {
+        this.virtual = virtual;
+    }
+
+    public boolean isVirtual() {
+        return virtual;
     }
 }
