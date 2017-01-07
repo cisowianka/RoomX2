@@ -11,10 +11,8 @@
      limitations under the License.
 -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/scan"
+    <item android:id="@+id/selectRoom"
         android:icon="@android:drawable/ic_menu_search"
-        android:title="connect" />
-    <item android:id="@+id/discoverable"
-        android:icon="@android:drawable/ic_menu_mylocation"
-        android:title="discoverable" />
+        android:title="@string/selectRoom" />
+
 </menu>

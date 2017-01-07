@@ -1,5 +1,7 @@
 package com.nn.roomx.ObjClasses;
 
+import java.util.List;
+
 /**
  * Created by user on 2017-01-02.
  */
@@ -12,6 +14,8 @@ public class ServiceResponse<V> {
     }
 
     private V responseObject;
+    private List<Event> events;
+    private List<SystemProperty> properties;
     private Status status;
     private String message;
 
@@ -48,5 +52,21 @@ public class ServiceResponse<V> {
 
     public boolean isOK() {
         return this.status.equals(Status.OK);
+    }
+
+    public List<Event> getEvents() {
+        return events;
+    }
+
+    public void setEvents(List<Event> events) {
+        this.events = events;
+    }
+
+    public List<SystemProperty> getProperties() {
+        return properties;
+    }
+
+    public void setProperties(List<SystemProperty> properties) {
+        this.properties = properties;
     }
 }

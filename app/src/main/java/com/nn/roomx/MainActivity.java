@@ -2,6 +2,8 @@ package com.nn.roomx;
 
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -12,19 +14,32 @@ import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.Ndef;
 import android.os.AsyncTask;
-import android.os.Handler;
-import android.os.StrictMode;
+import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.*;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.nn.roomx.ObjClasses.Appointment;
+import com.nn.roomx.ObjClasses.Event;
+import com.nn.roomx.ObjClasses.Room;
 import com.nn.roomx.ObjClasses.ServiceResponse;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -35,41 +50,302 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import rx.Observable;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
+import rx.subjects.PublishSubject;
+import rx.subjects.SerializedSubject;
+import rx.subjects.Subject;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "RoomX";
     private static final String MIME_TEXT_PLAIN = "text/plain";
-    private static final String ROOM_ID = "room1@sobotka.info";
+    public static final String PREFS_NAME = "RoomxPeferences";
+    private Setting settingsRoomx;
+
+
+    private final Subject<String, String> nfcEvents = new SerializedSubject<String, String>(PublishSubject.<String>create());
 
     //TODO: should be private
     public static ArrayAdapter<Appointment> adapter;
 
     private DataExchange dataExchange = new DataExchange();
-    private Handler refershSchedulerHandler;
+    private ProgressDialog progress = null;
 
     private EditText input;
     private AlertDialog confirmAlert;
-//    private AlertDialog createAlert;
-    private UserAction alertAction = UserAction.EMPTY;
+
     private NfcAdapter mNfcAdapter;
+    private Subscription listenerModeSubscription;
+    private Subscription appointmentListenerSub = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(this,
+                MainActivity.class));
         setContentView(R.layout.activity_main);
-
-        //TODO: remove this
-        // StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-        // StrictMode.setThreadPolicy(policy);
-
-        initViewHandlers();
-
-        this.refershSchedulerHandler = new Handler();
-        this.refershSchedulerHandler.postDelayed(refreshScheduler, 500);
-
-        refreshAppointments();
+        checkIfStartedAfterCrush();
+        readSettings();
         setupNFC();
+        initView();
+        initListeners();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.option_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.selectRoom:
+                selectRoom();
+                return true;
+            default:
+                return true;
+        }
+    }
+
+    @Override
+    public synchronized void onResume() {
+        super.onResume();
+        setupForegroundDispatch(this, mNfcAdapter);
+    }
+
+    @Override
+    public void onNewIntent(Intent intent) {
+        handleIntent(intent);
+    }
+
+    private AlertDialog getRoomSelectionDialog(List<Room> rooms) {
+        LayoutInflater layoutInflater = LayoutInflater.from(MainActivity.this);
+        final View dialogView = layoutInflater.inflate(R.layout.select_room, null);
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
+        alertDialogBuilder.setView(dialogView);
+        final RadioGroup rg = (RadioGroup) dialogView.findViewById(R.id.roomsWrapper);
+
+        dialogView.findViewById(R.id.passwordWrapper).setVisibility(View.VISIBLE);
+        dialogView.findViewById(R.id.roomsWrapper).setVisibility(View.INVISIBLE);
+
+        for (Room r : rooms) {
+            RadioButton rb = new RadioButton(MainActivity.this);
+            rb.setText(r.getMailboxId());
+            rg.addView(rb);
+        }
+
+        Button passwordConfirm = (Button) dialogView.findViewById(R.id.passwordConfirm);
+        final EditText password =(EditText) dialogView.findViewById(R.id.password);
+
+        passwordConfirm.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(settingsRoomx.checkAdminPassword(password.getText().toString())){
+                    dialogView.findViewById(R.id.passwordWrapper).setVisibility(View.INVISIBLE);
+                    dialogView.findViewById(R.id.roomsWrapper).setVisibility(View.VISIBLE);
+                }else{
+                    Toast.makeText(getApplicationContext(), R.string.wrong_admin_password, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        alertDialogBuilder.setCancelable(false)
+                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        int selectedId = rg.getCheckedRadioButtonId();
+                        if(selectedId == -1){
+                            return;
+                        }
+                        RadioButton radio = (RadioButton) rg.findViewById(selectedId);
+                        setRoomId(radio.getText().toString());
+                        initListeners();
+                    }
+                })
+                .setNegativeButton(R.string.cancel,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        });
+
+        AlertDialog alert = alertDialogBuilder.create();
+        return alert;
+    }
+
+    private void selectRoom() {
+        dataExchange.getRoomListObservable()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<ServiceResponse<List<Room>>>() {
+                               @Override
+                               public void call(ServiceResponse<List<Room>> response) {
+                                   getRoomSelectionDialog(response.getResponseObject()).show();
+                               }
+                           },
+
+                        new Action1<Throwable>() {
+                            public void call(Throwable e) {
+                                handleTechnicalError(e.getMessage(), e);
+                            }
+                        });
+    }
+
+    private void initListeners() {
+        if (settingsRoomx.noRoomAssigned()) {
+            selectRoom();
+        } else {
+
+            enableListenerMode();
+            enableAppointmentsListerMode();
+        }
+    }
+
+    private void readSettings() {
+        settingsRoomx = new Setting(getSharedPreferences(PREFS_NAME, 0));
+        settingsRoomx.init();
+    }
+
+    private void saveSettings() {
+        settingsRoomx.save();
+    }
+
+    private void checkIfStartedAfterCrush() {
+        if (getIntent().getExtras() != null) {
+            handleTechnicalError(getIntent().getStringExtra("stacktrace"), new Exception("CRASH"));
+        }
+    }
+
+    private void disableAppointmentsListerMode() {
+        appointmentListenerSub.unsubscribe();
+        appointmentListenerSub = null;
+    }
+
+    /**
+     * Every x seconds checks meetings for room
+     */
+    private void enableAppointmentsListerMode() {
+        Log.i(TAG, "enableAppointmentsListerMode");
+        if (appointmentListenerSub == null) {
+            appointmentListenerSub = Observable.interval(getAppointmentRefereshIntervalSeconds(), TimeUnit.SECONDS)
+                    .flatMap(new Func1<Long, Observable<ServiceResponse<List<Appointment>>>>() {
+                        @Override
+                        public Observable<ServiceResponse<List<Appointment>>> call(Long aLong) {
+                            return dataExchange.getAppointmentsForRoomObservable(getRoomId());
+                        }
+                    })
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .doOnError(new Action1<Throwable>() {
+                        public void call(Throwable e) {
+                            Log.i(TAG, "Error in enableAppointmentsListerMode doOnError " + e.getMessage());
+                            e.printStackTrace();
+                            handleTechnicalError(e.getMessage(), e);
+                        }
+                    })
+                    .retry()
+                    .subscribe(new Action1<ServiceResponse<List<Appointment>>>() {
+                                   @Override
+                                   public void call(ServiceResponse<List<Appointment>> o) {
+                                       refresAppointmentsView(o);
+                                   }
+                               },
+
+                            new Action1<Throwable>() {
+                                public void call(Throwable e) {
+                                    Log.i(TAG, "Error in enableAppointmentsListerMode on subscrbe error " + e.getMessage());
+                                    e.printStackTrace();
+                                    enableAppointmentsListerMode();
+                                    handleTechnicalError(e.getMessage(), e);
+                                }
+                            });
+        }
+
+    }
+
+    private void refresAppointmentsView(ServiceResponse<List<Appointment>> serverResponse) {
+        try {
+            if (serverResponse.isOK()) {
+                insertDummyFreeAppointments(Appointment.appointmentsExList);
+                MainActivity.adapter.notifyDataSetChanged();
+                setAppointmentsView();
+                handleServerConfigration(serverResponse);
+            } else {
+                handleBusinessErrorToast("Appointments load error " + serverResponse.getMessage());
+            }
+        } catch (Throwable e) {
+            handleTechnicalError(e.getMessage(), e);
+
+        }
+    }
+
+    private void handleServerConfigration(ServiceResponse<List<Appointment>> serverResponse) {
+        for(Event e : serverResponse.getEvents()){
+            handleRoomxEvent(e);
+        }
+    }
+
+    private void handleRoomxEvent(Event event) {
+        Log.i(TAG, "EVENT ------------- " + event.toString());
+        if("RESTART".equals(event.getName())){
+            restartApp();
+        }
+    }
+
+    private void enableListenerMode() {
+        listenerModeSubscription = nfcEvents.distinct().subscribe(new Action1<String>() {
+            @Override
+            public void call(String userId) {
+                Appointment active = Appointment.getCurrentAppointment();
+                if (active == null) {
+                    Toast.makeText(getApplicationContext(), R.string.no_meeting, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                progress.show();
+                Observable.concat(dataExchange.getCoonfirmAppointmentObservable(userId, active.getID()), dataExchange.getAppointmentsForRoomObservable(getRoomId()))
+                        .subscribeOn(Schedulers.newThread())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .last()
+                        .subscribe(new Action1<ServiceResponse>() {
+                                       @Override
+                                       public void call(ServiceResponse response) {
+                                           refresAppointmentsView(response);
+                                           enableListenerMode();
+                                           progress.dismiss();
+                                       }
+                                   },
+
+                                new Action1<Throwable>() {
+                                    public void call(Throwable e) {
+                                        progress.dismiss();
+                                        Log.e(TAG, " enableListenerMode nfc error " + e.getMessage(), e);
+                                        enableListenerMode();
+                                        handleTechnicalError(e.getMessage(), e);
+                                    }
+                                });
+
+            }
+        }, new Action1<Throwable>() {
+
+            public void call(Throwable e) {
+                Log.e(TAG, " enableListenerMode nfc error " + e.getMessage(), e);
+                progress.dismiss();
+                enableListenerMode();
+                handleTechnicalError(e.getMessage(), e);
+            }
+        });
+    }
+
+    private void disableListenerMode() {
+        listenerModeSubscription.unsubscribe();
+        listenerModeSubscription = null;
     }
 
 
@@ -79,9 +355,20 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void restartApp() {
+        Intent i = getBaseContext().getPackageManager()
+                .getLaunchIntentForPackage(getBaseContext().getPackageName());
+        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(i);
+    }
+
     private View.OnClickListener buttonCreateListener = new View.OnClickListener() {
+
         @Override
         public void onClick(View view) {
+
+            disableListenerMode();
+            disableAppointmentsListerMode();
 
             AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
             builder.setTitle("Meeting subject:");
@@ -94,12 +381,75 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.cancel();
+                    enableListenerMode();
+                    enableAppointmentsListerMode();
                 }
             });
 
             confirmAlert = builder.create();
-            alertAction = UserAction.CREATE;
             confirmAlert.show();
+
+            final Subscription subscribe = Observable.concat(nfcEvents, Observable.just(""))
+                    .subscribeOn(Schedulers.newThread()) // Create a new Thread
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .first().subscribe(new Action1<String>() {
+                        @Override
+                        public void call(String nfcEvent) {
+                            progress.show();
+                            Toast.makeText(getApplicationContext(), getResources().getString(R.string.msg_from_nfc) + " "
+                                    + nfcEvent, Toast.LENGTH_SHORT).show();
+                            Log.i(TAG, "nfcEvents ----------observable events  " + nfcEvent);
+                            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            Date d = new Date();
+                            Calendar c = Calendar.getInstance();
+                            c.setTime(new Date());
+                            c.set(Calendar.SECOND, 0);
+                            c.set(Calendar.MILLISECOND, 0);
+
+                            c.add(Calendar.MINUTE, -2);
+                            Date now = c.getTime();
+                            c.add(Calendar.MINUTE, 30);
+                            Observable.concat(dataExchange.getCreateAppointmentObservable(nfcEvent, getRoomId(), input.getText().toString(), now, c.getTime()),
+                                    Observable.timer(10, TimeUnit.SECONDS),
+                                    dataExchange.getAppointmentsForRoomObservable(getRoomId()))
+                                    .subscribeOn(Schedulers.newThread())
+                                    .observeOn(AndroidSchedulers.mainThread())
+                                    .last()
+                                    .subscribe(new Action1<Object>() {
+                                                   @Override
+                                                   public void call(Object object) {
+                                                       ServiceResponse response = (ServiceResponse) object;
+                                                       refresAppointmentsView(response);
+                                                       progress.dismiss();
+                                                       confirmAlert.dismiss();
+                                                       enableListenerMode();
+                                                       enableAppointmentsListerMode();
+                                                   }
+                                               },
+
+                                            new Action1<Throwable>() {
+                                                public void call(Throwable e) {
+                                                    progress.dismiss();
+                                                    confirmAlert.dismiss();
+                                                    enableListenerMode();
+                                                    enableAppointmentsListerMode();
+                                                    handleTechnicalError(e.getMessage(), e);
+                                                }
+                                            });
+                        }
+                    }, new Action1<Throwable>() {
+
+                        public void call(Throwable e) {
+                            progress.dismiss();
+                            confirmAlert.dismiss();
+                            handleTechnicalError(e.getMessage(), e);
+                            enableListenerMode();
+                            enableAppointmentsListerMode();
+                        }
+                    });
+
+
+            Log.i(TAG, "----------create stop  ");
 
         }
     };
@@ -112,7 +462,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 dataExchange.confirmStarted(Appointment.appointmentsExList.get(0).getOwner().getID(), Appointment.appointmentsExList.get(0).getID());
             } catch (Exception e) {
-                handleCommunicationError(e.getMessage());
+                handleTechnicalError(e.getMessage(), e);
             }
             Button b1 = (Button) findViewById(R.id.buttonStart);
             b1.setVisibility(View.INVISIBLE);
@@ -135,10 +485,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
             confirmAlert = builder.create();
-            alertAction = UserAction.FINISH;
             confirmAlert.show();
-
-
         }
     };
 
@@ -146,87 +493,120 @@ public class MainActivity extends AppCompatActivity {
     private View.OnClickListener buttonCancelListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
-            Log.e("CancelButtoon", "Clicekd");
+            Log.i(TAG, "Cancel clicked");
+            disableListenerMode();
+            disableAppointmentsListerMode();
 
             AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
                     .setTitle("Cancell appointment?")
                     .setMessage("User your card to confirm")
-                    .setNegativeButton("Close", new DialogInterface.OnClickListener() {
+                    .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
+                            enableListenerMode();
+                            enableAppointmentsListerMode();
                             dialog.cancel();
                         }
                     });
             confirmAlert = builder.create();
-            alertAction = UserAction.CANCEL;
             confirmAlert.show();
+
+
+            Log.i(TAG, "----------cancelstart  ");
+            final Subscription subscribe = Observable.concat(nfcEvents, Observable.just("testjust"))
+                    .subscribeOn(Schedulers.newThread()) // Create a new Thread
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .first().subscribe(new Action1<String>() {
+                                           @Override
+                                           public void call(String userId) {
+                                               progress.show();
+                                               Toast.makeText(getApplicationContext(), getResources().getString(R.string.msg_from_nfc) + " "
+                                                       + userId, Toast.LENGTH_SHORT).show();
+                                               Log.i(TAG, "nfcEvents ----------observable events cancel  " + userId);
+
+                                               Observable.concat(dataExchange.getCancelAppointmentObservable(userId, Appointment.getCurrentAppointment().getID()).flatMap(new Func1<ServiceResponse<Boolean>, Observable<String>>() {
+                                                   @Override
+                                                   public Observable<String> call(ServiceResponse<Boolean> serviceResponse) {
+                                                       return Observable.just(String.valueOf(serviceResponse.isOK()));
+                                                   }
+                                               }), Observable.timer(10, TimeUnit.SECONDS).flatMap(new Func1<Long, Observable<String>>() {
+
+                                                   @Override
+                                                   public Observable<String> call(Long o) {
+                                                       return Observable.just(o.toString());
+                                                   }
+                                               }), dataExchange.getAppointmentsForRoomObservable(getRoomId()).flatMap(new Func1<ServiceResponse<List<Appointment>>, Observable<String>>() {
+
+                                                   @Override
+                                                   public Observable<String> call(ServiceResponse<List<Appointment>> serviceResponse) {
+
+                                                       return Observable.just(String.valueOf("Finished"));
+                                                   }
+                                               }))
+                                                       .subscribeOn(Schedulers.newThread()) // Create a new Thread
+                                                       .observeOn(AndroidSchedulers.mainThread()) // Use the UI thread
+                                                       .filter(new Func1<String, Boolean>() {
+                                                           @Override
+                                                           public Boolean call(String s) {
+                                                               return s.equals("Finished");
+                                                           }
+                                                       })
+                                                       .subscribe(new Action1<String>() {
+                                                                      @Override
+                                                                      public void call(String o) {
+                                                                          insertDummyFreeAppointments(Appointment.appointmentsExList);
+                                                                          MainActivity.adapter.notifyDataSetChanged();
+                                                                          setAppointmentsView();
+                                                                          progress.dismiss();
+                                                                          confirmAlert.dismiss();
+                                                                          enableListenerMode();
+                                                                          enableAppointmentsListerMode();
+
+                                                                      }
+                                                                  },
+
+                                                               new Action1<Throwable>()
+
+                                                               {
+
+                                                                   public void call(Throwable e) {
+                                                                       Log.i(TAG, "----------observable events ERROR network " + e.getMessage());
+                                                                       handleTechnicalError(e.getMessage(), e);
+                                                                       progress.dismiss();
+                                                                       confirmAlert.dismiss();
+                                                                       enableListenerMode();
+                                                                       enableAppointmentsListerMode();
+                                                                   }
+                                                               });
+
+
+                                           }
+                                       },
+
+                            new Action1<Throwable>()
+
+                            {
+
+                                public void call(Throwable e) {
+                                    Log.i(TAG, " nfcEvents----------observable events ERROR  " + e.getMessage());
+                                    progress.dismiss();
+                                    confirmAlert.dismiss();
+                                    enableListenerMode();
+                                    enableAppointmentsListerMode();
+                                }
+                            });
+
 
         }
     };
 
-    private void tryCancel(String memberID) {
-        try {
-            ServiceResponse<Boolean> confirmationResponse = dataExchange.cancel(memberID, Appointment.getCurrentAppointment().getID());
-            if (confirmationResponse.isOK()) {
-                Toast.makeText(getApplicationContext(), "Cancelation completed " + memberID, Toast.LENGTH_SHORT).show();
-                refreshAppointments();
-            } else {
-                handleCommunicationError("Cancelation failed");
-            }
-        } catch (Exception e) {
-            handleCommunicationError(e.getMessage());
-        }
 
-        actionConfirmed();
+    @Override
+    protected void onStop() {
+        super.onStop();
+        saveSettings();
     }
 
-    private void tryFinishMeeting(String memberID) {
-
-        try {
-            ServiceResponse<Boolean> confirmationResponse = dataExchange.finish(memberID, Appointment.getCurrentAppointment().getID());
-            if (confirmationResponse.isOK()) {
-                Toast.makeText(getApplicationContext(), "Finishing completed ", Toast.LENGTH_SHORT).show();
-                refreshAppointments();
-            } else {
-                handleCommunicationError("Finishing failed");
-            }
-        } catch (Exception e) {
-            handleCommunicationError(e.getMessage());
-        }
-
-        actionConfirmed();
-
-    }
-
-    private void tryCreateMeeting(String memberID) {
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date d = new Date();
-        Calendar c = Calendar.getInstance();
-        c.setTime(new Date());
-        c.set(java.util.Calendar.SECOND, 0);
-        c.set(java.util.Calendar.MILLISECOND, 0);
-
-        c.add(Calendar.MINUTE, -2);
-        Date now = c.getTime();
-        Log.v("RoomX", "COS JEST NIE TYEGES");
-        c.add(Calendar.MINUTE, 30);
-
-        try {
-            ServiceResponse<Boolean> confirmationResponse = dataExchange.create(memberID, ROOM_ID, input.getText().toString(), now, c.getTime());
-            if (confirmationResponse.isOK()) {
-                Toast.makeText(getApplicationContext(), "Createion completed " + memberID, Toast.LENGTH_SHORT).show();
-                refreshAppointments();
-            } else {
-                handleCommunicationError("Createion failed");
-            }
-        } catch (Exception e) {
-            handleCommunicationError(e.getMessage());
-        }
-
-        actionConfirmed();
-
-    }
-
-    public void setupNFC() {
+    private void setupNFC() {
         mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
         if (!checkNFCenabled()) {
             Toast.makeText(this, "This device doesn't support NFC.", Toast.LENGTH_LONG).show();
@@ -260,7 +640,8 @@ public class MainActivity extends AppCompatActivity {
                 AsyncTask<Tag, Void, String> execute = new NdefReaderTask().execute(tag);
                 try {
                     String result = execute.get();
-                    tryConfirm(result);
+                    nfcEvents.onNext(result);
+                    //tryConfirm(result);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 } catch (ExecutionException e) {
@@ -287,18 +668,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-    @Override
-    public synchronized void onResume() {
-        super.onResume();
-        setupForegroundDispatch(this, mNfcAdapter);
-    }
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        handleIntent(intent);
-    }
-
     public static void setupForegroundDispatch(final Activity activity, NfcAdapter adapter) {
         final Intent intent = new Intent(activity.getApplicationContext(), activity.getClass());
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -321,61 +690,17 @@ public class MainActivity extends AppCompatActivity {
         adapter.enableForegroundDispatch(activity, pendingIntent, filters, techList);
     }
 
-    private void actionConfirmed(){
-        alertAction = UserAction.EMPTY;
-        confirmAlert.hide();
-        confirmAlert = null;;
-    }
+    private void initView() {
 
-    private void tryConfirm(String userID) {
-        Log.e("TryConfirm", alertAction + "Confirm " + userID);
+        ((TextView) findViewById(R.id.roomID)).setText(getRoomId());
 
-        if (!UserAction.EMPTY.equals(alertAction)) {
-            if (UserAction.CANCEL.equals(alertAction)) {
-              //  alertAction = UserAction.EMPTY;
-              //  confirmAlert.hide();
-              //  confirmAlert = null;
-                tryCancel(userID);
-            } else if (UserAction.CREATE.equals(alertAction)) {
-              //  alertAction = UserAction.EMPTY;
-              //  confirmAlert.hide();
-              //  confirmAlert = null;
-                tryCreateMeeting(userID);
-            }else if (UserAction.FINISH.equals(alertAction)) {
-              //  alertAction = UserAction.EMPTY;
-              //  confirmAlert.hide();
-              //  confirmAlert = null;
-                tryFinishMeeting(userID);
-            }
-        } else {
-            Appointment active = Appointment.getCurrentAppointment();
-            if (active == null) {
-                Toast.makeText(getApplicationContext(), R.string.no_meeting, Toast.LENGTH_SHORT).show();
-            } else {
-                try {
-                    ServiceResponse<Boolean> confirmationResponse = dataExchange.confirmStarted(userID, active.getID());
-                    if (confirmationResponse.isOK()) {
-                        Toast.makeText(getApplicationContext(), getResources().getString(R.string.confirmation_for) + userID, Toast.LENGTH_SHORT).show();
-                    } else {
-                        handleCommunicationError("Confirmation failed");
-                    }
-                } catch (Exception e) {
-                    handleCommunicationError(e.getMessage());
-                }
-            }
-        }
-    }
+        progress = new ProgressDialog(this);
 
-    private final Runnable refreshScheduler = new Runnable() {
-        public void run() {
-            MainActivity.this.refershSchedulerHandler.postDelayed(refreshScheduler, 10000);
-            refreshAppointments();
-
-        }
-    };
+        progress.setTitle("Loading");
+        progress.setMessage("Wait while loading...");
+        progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
 
 
-    private void initViewHandlers() {
         Button confirmCreateButton = (Button) findViewById(R.id.buttonStart);
         confirmCreateButton.setOnClickListener(button3confirmListener);
 
@@ -409,26 +734,28 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void refreshAppointments() {
-        //TODO: wrap appointments
-        try {
-            ServiceResponse<List<Appointment>> meetingsForRoom = dataExchange.getMeetingsForRoom(ROOM_ID);
-            if (meetingsForRoom.isOK()) {
-                insertDummyFreeAppointments(Appointment.appointmentsExList);
-                MainActivity.adapter.notifyDataSetChanged();
-                setAppointmentsView();
-            } else {
-                handleCommunicationError(meetingsForRoom.getMessage());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            handleCommunicationError(e.getMessage());
-        }
-
+    private void handleBusinessErrorToast(String message) {
+        Log.i(TAG, "handle communication error " + message);
+        Toast.makeText(this, getResources().getString(R.string.communication_error) + message, Toast.LENGTH_LONG).show();
     }
 
-    private void handleCommunicationError(String msg) {
+    private void handleTechnicalError(String msg, Throwable e) {
+        Log.e(TAG, "handle communication error " + msg, e);
         Toast.makeText(this, getResources().getString(R.string.communication_error) + msg, Toast.LENGTH_LONG).show();
+        dataExchange.getCreateErrorReportObservable(getRoomId(), msg, e)
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<ServiceResponse>() {
+                               @Override
+                               public void call(ServiceResponse response) {
+                               }
+                           },
+
+                        new Action1<Throwable>() {
+                            public void call(Throwable e) {
+                                Log.e(TAG, " handleTechnicalError " + e.getMessage(), e);
+                            }
+                        });
     }
 
     private void insertDummyFreeAppointments(ArrayList<Appointment> appointmentsExList) {
@@ -540,9 +867,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private enum UserAction {
-        CANCEL, EMPTY, FINISH, CREATE
+    private String getRoomId() {
+        return settingsRoomx.getRoomId();
+    }
 
+    private void setRoomId(String roomId) {
+        settingsRoomx.setRoomId(roomId);
+        ((TextView) findViewById(R.id.roomID)).setText(roomId);
+    }
+
+    public long getAppointmentRefereshIntervalSeconds() {
+        return settingsRoomx.getAppointmentRefershIntervalSeconds();
     }
 
     private class NdefReaderTask extends AsyncTask<Tag, Void, String> {
@@ -586,9 +921,41 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String result) {
             if (result != null) {
-                Toast.makeText(getApplicationContext(), getResources().getString(R.string.msg_from_nfc) + " "
-                        + result, Toast.LENGTH_SHORT).show();
+                //     Toast.makeText(getApplicationContext(), getResources().getString(R.string.msg_from_nfc) + " "
+                //           + result, Toast.LENGTH_SHORT).show();
             }
+        }
+    }
+
+    class ExceptionHandler implements
+            java.lang.Thread.UncaughtExceptionHandler {
+        private final Context myContext;
+        private final Class<?> myActivityClass;
+
+        public ExceptionHandler(Context context, Class<?> c) {
+
+            myContext = context;
+            myActivityClass = c;
+        }
+
+        public void uncaughtException(Thread thread, Throwable exception) {
+
+            StringWriter stackTrace = new StringWriter();
+            exception.printStackTrace(new PrintWriter(stackTrace));
+            System.err.println(stackTrace);// You can use LogCat too
+            Intent intent = new Intent(myContext, myActivityClass);
+            String s = stackTrace.toString();
+            intent.putExtra("uncaughtException",
+                    "Exception is: " + stackTrace.toString());
+            intent.putExtra("stacktrace", s);
+            myContext.startActivity(intent);
+
+            Log.e(TAG, "CRASH APP " + exception.getMessage());
+
+            handleTechnicalError(exception.getMessage(), exception);
+
+            android.os.Process.killProcess(android.os.Process.myPid());
+            System.exit(0);
         }
     }
 

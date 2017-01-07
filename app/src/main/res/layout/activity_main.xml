@@ -1,116 +1,187 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="25dp"
         android:paddingLeft="@dimen/activity_horizontal_margin"
         android:paddingRight="@dimen/activity_horizontal_margin"
-        android:paddingTop="@dimen/activity_vertical_margin"
-        android:paddingBottom="@dimen/activity_vertical_margin"
+        tools:context="com.nn.roomx.MainActivity"
+        android:background="@color/colorPrimary">
+
+        <TextView
+            android:id="@+id/roomID"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:text="Room:" />
+
+    </RelativeLayout>
+
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingLeft="@dimen/activity_horizontal_margin"
+        android:paddingRight="@dimen/activity_horizontal_margin"
         tools:context="com.nn.roomx.MainActivity">
 
-    <TextView
+
+        <RelativeLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Current meeting:"
-            android:id="@+id/textView" android:layout_alignParentTop="true" android:layout_alignParentStart="true"/>
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="Status:"
-            android:id="@+id/textView2" android:layout_below="@+id/textView" android:layout_alignParentStart="true"/>
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="Title:"
-            android:id="@+id/textView3" android:layout_below="@+id/textView2" android:layout_alignParentStart="true"/>
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:text="Host:"
-            android:id="@+id/textView4" android:layout_below="@+id/textView3" android:layout_alignParentStart="true"/>
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:text="Start time:"
-            android:id="@+id/textView5" android:layout_below="@+id/textView4" android:layout_alignParentStart="true"/>
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:text="End time:"
-            android:id="@+id/textView6" android:layout_below="@+id/textView5" android:layout_alignParentStart="true"/>
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="------"
-            android:id="@+id/textViewStatus" android:layout_below="@+id/textView" android:layout_toEndOf="@+id/textView"/>
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="------"
-            android:id="@+id/textViewTitle" android:layout_below="@+id/textViewStatus"
-            android:layout_alignStart="@+id/textViewStatus"/>
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:text="------"
-            android:id="@+id/textViewHost" android:layout_below="@+id/textViewTitle"
-            android:layout_alignStart="@+id/textViewTitle"/>
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:text="------"
-            android:id="@+id/textViewStart" android:layout_below="@+id/textViewHost"
-            android:layout_alignStart="@+id/textViewHost"/>
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:text="------"
-            android:id="@+id/textViewEnd" android:layout_below="@+id/textViewStart"
-            android:layout_alignStart="@+id/textViewStart"/>
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/buttonStatusColor" android:layout_above="@+id/textViewTitle"
-            android:layout_toEndOf="@+id/textViewStatus" android:layout_marginStart="32dp"/>
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="CANCEL"
-            android:id="@+id/buttonCancel"
-            android:layout_marginStart="39dp" android:layout_alignBaseline="@+id/buttonFinish"
-            android:layout_alignBottom="@+id/buttonFinish" android:layout_toEndOf="@+id/buttonFinish"/>
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="CONFIRM"
-            android:id="@+id/buttonStart"
-            android:layout_marginTop="59dp" android:layout_below="@+id/textView6"
-            android:layout_alignParentStart="true"/>
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="FINISH"
-            android:id="@+id/buttonFinish"
-            android:layout_marginStart="16dp" android:layout_alignBaseline="@+id/buttonStart"
-            android:layout_alignBottom="@+id/buttonStart" android:layout_alignStart="@+id/textViewEnd"/>
-    <ListView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/listView"
-            android:layout_marginStart="205dp"
-            android:layout_alignParentTop="true" android:layout_toEndOf="@+id/buttonCancel"/>
-</RelativeLayout>
+            android:paddingTop="@dimen/activity_vertical_margin">
+
+            <TextView
+                android:id="@+id/textView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentTop="true"
+                android:text="Current meeting:" />
+
+            <TextView
+                android:id="@+id/textView2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/textView"
+                android:text="Status:"
+                android:textAppearance="?android:attr/textAppearanceLarge" />
+
+            <TextView
+                android:id="@+id/textView3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/textView2"
+                android:text="Title:"
+                android:textAppearance="?android:attr/textAppearanceLarge" />
+
+            <TextView
+                android:id="@+id/textView4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/textView3"
+                android:text="Host:"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <TextView
+                android:id="@+id/textView5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/textView4"
+                android:text="Start time:"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <TextView
+                android:id="@+id/textView6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/textView5"
+                android:text="End time:"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <TextView
+                android:id="@+id/textViewStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/textView"
+                android:layout_toEndOf="@+id/textView"
+                android:text="------"
+                android:textAppearance="?android:attr/textAppearanceLarge" />
+
+            <TextView
+                android:id="@+id/textViewTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignStart="@+id/textViewStatus"
+                android:layout_below="@+id/textViewStatus"
+                android:text="------"
+                android:textAppearance="?android:attr/textAppearanceLarge" />
+
+            <TextView
+                android:id="@+id/textViewHost"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignStart="@+id/textViewTitle"
+                android:layout_below="@+id/textViewTitle"
+                android:text="------"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <TextView
+                android:id="@+id/textViewStart"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignStart="@+id/textViewHost"
+                android:layout_below="@+id/textViewHost"
+                android:text="------"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <TextView
+                android:id="@+id/textViewEnd"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignStart="@+id/textViewStart"
+                android:layout_below="@+id/textViewStart"
+                android:text="------"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <Button
+                android:id="@+id/buttonCancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBaseline="@+id/buttonFinish"
+                android:layout_alignBottom="@+id/buttonFinish"
+                android:layout_marginStart="39dp"
+                android:layout_toEndOf="@+id/buttonFinish"
+                android:text="CANCEL" />
+
+            <Button
+                android:id="@+id/buttonStart"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/textView6"
+                android:layout_marginTop="59dp"
+                android:text="CONFIRM" />
+
+            <Button
+                android:id="@+id/buttonFinish"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBaseline="@+id/buttonStart"
+                android:layout_alignBottom="@+id/buttonStart"
+                android:layout_alignStart="@+id/textViewEnd"
+                android:layout_marginStart="16dp"
+                android:text="FINISH" />
+
+            <ListView
+                android:id="@+id/listView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_marginStart="205dp"
+                android:layout_toEndOf="@+id/buttonCancel" />
+
+            <Button
+                android:id="@+id/buttonStatusColor"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_marginStart="32dp"
+                android:layout_toEndOf="@+id/textViewStatus" />
+
+        </RelativeLayout>
+
+    </RelativeLayout>
+</LinearLayout>
 
 

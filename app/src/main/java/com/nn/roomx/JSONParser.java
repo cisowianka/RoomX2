@@ -1,8 +1,13 @@
 package com.nn.roomx;
 
 import android.util.Log;
+
 import com.nn.roomx.ObjClasses.Appointment;
+import com.nn.roomx.ObjClasses.Event;
 import com.nn.roomx.ObjClasses.Person;
+import com.nn.roomx.ObjClasses.Room;
+import com.nn.roomx.ObjClasses.SystemProperty;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -11,7 +16,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+
 import android.util.Log;
+
 /**
  * Created by Mikołaj on 01.12.2016.
  */
@@ -21,6 +29,57 @@ public class JSONParser {
 
     public JSONParser() {
     }
+
+
+    public List<Room> parseRoomList(String response) throws JSONException {
+        reader = new JSONObject(response);
+        JSONArray roomsJSON = reader.getJSONArray("rooms");
+        List<Room> rooms = new ArrayList<>();
+
+        for (int i = 0; i < roomsJSON.length(); i++) {
+            Room room = new Room(roomsJSON.getJSONObject(i).getString("mailboxId"));
+            rooms.add(room);
+        }
+        return rooms;
+    }
+
+
+    public List<Event> parseEvents(String response) throws JSONException {
+        reader = new JSONObject(response);
+        JSONArray roomsJSON = reader.getJSONArray("events");
+        List<Event> events = new ArrayList<>();
+
+        for (int i = 0; i < roomsJSON.length(); i++) {
+            Event event = new Event();
+            event.setId(roomsJSON.getJSONObject(i).getInt("id"));
+            event.setRoomId(roomsJSON.getJSONObject(i).getString("roomId"));
+            event.setName(roomsJSON.getJSONObject(i).getString("name"));
+            event.setValue(roomsJSON.getJSONObject(i).getString("value"));
+            event.setApplied(roomsJSON.getJSONObject(i).getBoolean("applied"));
+
+            events.add(event);
+        }
+        return events;
+    }
+
+    public List<SystemProperty> parseSystemProperties(String response) throws JSONException {
+        reader = new JSONObject(response);
+        JSONArray roomsJSON = reader.getJSONArray("events");
+        List<SystemProperty> properties = new ArrayList<>();
+
+        for (int i = 0; i < roomsJSON.length(); i++) {
+            SystemProperty property = new SystemProperty();
+            property.setId(roomsJSON.getJSONObject(i).getInt("id"));
+            property.setRoomId(roomsJSON.getJSONObject(i).getString("roomId"));
+            property.setName(roomsJSON.getJSONObject(i).getString("name"));
+            property.setValue(roomsJSON.getJSONObject(i).getString("value"));
+            property.setApplied(roomsJSON.getJSONObject(i).getBoolean("applied"));
+
+            properties.add(property);
+        }
+        return properties;
+    }
+
 
     public boolean parseAppointmentsList(String response) throws JSONException {
         reader = new JSONObject(response);
@@ -34,7 +93,6 @@ public class JSONParser {
             JSONObject c = appointments.getJSONObject(i);
 
 
-
             Appointment tmpApp = new Appointment();
 
             Date startDate = null;
@@ -42,7 +100,7 @@ public class JSONParser {
 
             SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             try {
-                Log.e("PARSER ", "--- " + c.getString("startStr") +  " " +c.getString("endStr") );
+                Log.e("PARSER ", "--- " + c.getString("startStr") + " " + c.getString("endStr"));
                 startDate = formatter.parse(c.getString("startStr"));
                 endDate = formatter.parse(c.getString("endStr"));
             } catch (ParseException e) {
@@ -54,7 +112,7 @@ public class JSONParser {
             tmpApp.setEnd(endDate);
             tmpApp.setSubject(c.getString("subject"));
             //Log.e("RoomX", "parsed base data");
-            Person owner = new Person(c.getString("ownerMailbox"),c.getString("ownerName"));
+            Person owner = new Person(c.getString("ownerMailbox"), c.getString("ownerName"));
 
             tmpApp.setOwner(owner);
 //            tmpApp.setConfirmed(c.getBoolean("confirmed"));
@@ -65,7 +123,7 @@ public class JSONParser {
 
                 JSONObject attj = attendeess.getJSONObject(j);
 
-                Person attNew = new Person(attj.getString("mailbox"),attj.getString("name"));
+                Person attNew = new Person(attj.getString("mailbox"), attj.getString("name"));
                 //Log.e("RoomX", "created person "+attNew.toString());
 
                 tmpApp.getAttendees().add(attNew);
