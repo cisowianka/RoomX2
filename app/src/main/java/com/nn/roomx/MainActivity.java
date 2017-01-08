@@ -66,9 +66,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "RoomX";
     private static final String MIME_TEXT_PLAIN = "text/plain";
-    public static final String PREFS_NAME = "RoomxPeferences";
+    private static final String PREFS_NAME = "RoomxPeferences";
     private Setting settingsRoomx;
-
 
     private final Subject<String, String> nfcEvents = new SerializedSubject<String, String>(PublishSubject.<String>create());
 
@@ -77,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
 
     private DataExchange dataExchange = new DataExchange();
     private ProgressDialog progress = null;
+    private ProgressDialog refreshAppointmentsProgress = null;
 
     private EditText input;
     private AlertDialog confirmAlert;
@@ -84,6 +84,8 @@ public class MainActivity extends AppCompatActivity {
     private NfcAdapter mNfcAdapter;
     private Subscription listenerModeSubscription;
     private Subscription appointmentListenerSub = null;
+    private Subscription inactiveDialoguMonitor;
+    private Subscription appointmentActionSubscription;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,8 +93,9 @@ public class MainActivity extends AppCompatActivity {
         Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(this,
                 MainActivity.class));
         setContentView(R.layout.activity_main);
-        checkIfStartedAfterCrush();
         readSettings();
+        checkIfStartedAfterCrush();
+
         setupNFC();
         initView();
         initListeners();
@@ -119,6 +122,7 @@ public class MainActivity extends AppCompatActivity {
     public synchronized void onResume() {
         super.onResume();
         setupForegroundDispatch(this, mNfcAdapter);
+        readSettings();
     }
 
     @Override
@@ -143,15 +147,15 @@ public class MainActivity extends AppCompatActivity {
         }
 
         Button passwordConfirm = (Button) dialogView.findViewById(R.id.passwordConfirm);
-        final EditText password =(EditText) dialogView.findViewById(R.id.password);
+        final EditText password = (EditText) dialogView.findViewById(R.id.password);
 
         passwordConfirm.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(settingsRoomx.checkAdminPassword(password.getText().toString())){
+                if (settingsRoomx.checkAdminPassword(password.getText().toString())) {
                     dialogView.findViewById(R.id.passwordWrapper).setVisibility(View.INVISIBLE);
                     dialogView.findViewById(R.id.roomsWrapper).setVisibility(View.VISIBLE);
-                }else{
+                } else {
                     Toast.makeText(getApplicationContext(), R.string.wrong_admin_password, Toast.LENGTH_SHORT).show();
                 }
             }
@@ -161,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         int selectedId = rg.getCheckedRadioButtonId();
-                        if(selectedId == -1){
+                        if (selectedId == -1) {
                             return;
                         }
                         RadioButton radio = (RadioButton) rg.findViewById(selectedId);
@@ -202,10 +206,34 @@ public class MainActivity extends AppCompatActivity {
         if (settingsRoomx.noRoomAssigned()) {
             selectRoom();
         } else {
-
-            enableListenerMode();
-            enableAppointmentsListerMode();
+            initAppointmentsData();
         }
+    }
+
+    private void initAppointmentsData() {
+        progress.show();
+        dataExchange.getAppointmentsForRoomObservable(getRoomId())
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<ServiceResponse>() {
+                               @Override
+                               public void call(ServiceResponse response) {
+                                   refresAppointmentsView(response);
+                                   enableListenerMode();
+                                   enableAppointmentsListerMode();
+                                   progress.dismiss();
+                               }
+                           },
+
+                        new Action1<Throwable>() {
+                            public void call(Throwable e) {
+                                progress.dismiss();
+                                Log.e(TAG, " enableListenerMode nfc error " + e.getMessage(), e);
+                                enableListenerMode();
+                                enableAppointmentsListerMode();
+                                handleTechnicalError(e.getMessage(), e);
+                            }
+                        });
     }
 
     private void readSettings() {
@@ -224,8 +252,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void disableAppointmentsListerMode() {
-        appointmentListenerSub.unsubscribe();
-        appointmentListenerSub = null;
+        Log.i(TAG, "disableAppointmentsListerMode " + appointmentListenerSub);
+        if (appointmentListenerSub != null) {
+            appointmentListenerSub.unsubscribe();
+            appointmentListenerSub = null;
+        }
+
     }
 
     /**
@@ -235,32 +267,48 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "enableAppointmentsListerMode");
         if (appointmentListenerSub == null) {
             appointmentListenerSub = Observable.interval(getAppointmentRefereshIntervalSeconds(), TimeUnit.SECONDS)
-                    .flatMap(new Func1<Long, Observable<ServiceResponse<List<Appointment>>>>() {
-                        @Override
-                        public Observable<ServiceResponse<List<Appointment>>> call(Long aLong) {
-                            return dataExchange.getAppointmentsForRoomObservable(getRoomId());
-                        }
-                    })
                     .subscribeOn(Schedulers.newThread())
                     .observeOn(AndroidSchedulers.mainThread())
-                    .doOnError(new Action1<Throwable>() {
-                        public void call(Throwable e) {
-                            Log.i(TAG, "Error in enableAppointmentsListerMode doOnError " + e.getMessage());
-                            e.printStackTrace();
-                            handleTechnicalError(e.getMessage(), e);
-                        }
-                    })
-                    .retry()
-                    .subscribe(new Action1<ServiceResponse<List<Appointment>>>() {
+                    .subscribe(new Action1<Object>() {
                                    @Override
-                                   public void call(ServiceResponse<List<Appointment>> o) {
-                                       refresAppointmentsView(o);
+                                   public void call(Object o) {
+                                       Log.i(TAG, "enableAppointmentsListerMode refersh ");
+                                       refreshAppointmentsProgress.show();
+                                       dataExchange.getAppointmentsForRoomObservable(getRoomId())
+                                               .subscribeOn(Schedulers.newThread())
+                                               .observeOn(AndroidSchedulers.mainThread())
+                                               .doOnError(new Action1<Throwable>() {
+                                                   public void call(Throwable e) {
+                                                       Log.i(TAG, "Error in enableAppointmentsListerMode doOnError " + e.getMessage());
+                                                       e.printStackTrace();
+                                                       handleTechnicalError(e.getMessage(), e);
+                                                   }
+                                               })
+                                               .retry()
+                                               .subscribe(new Action1<ServiceResponse<List<Appointment>>>() {
+                                                              @Override
+                                                              public void call(ServiceResponse<List<Appointment>> o) {
+                                                                  refreshAppointmentsProgress.hide();
+                                                                  refresAppointmentsView(o);
+                                                              }
+                                                          },
+
+                                                       new Action1<Throwable>() {
+                                                           public void call(Throwable e) {
+                                                               Log.i(TAG, "Error in enableAppointmentsListerMode on subscrbe error " + e.getMessage());
+                                                               refreshAppointmentsProgress.hide();
+                                                               e.printStackTrace();
+                                                               enableAppointmentsListerMode();
+                                                               handleTechnicalError(e.getMessage(), e);
+                                                           }
+                                                       });
                                    }
                                },
 
                             new Action1<Throwable>() {
                                 public void call(Throwable e) {
                                     Log.i(TAG, "Error in enableAppointmentsListerMode on subscrbe error " + e.getMessage());
+                                    refreshAppointmentsProgress.hide();
                                     e.printStackTrace();
                                     enableAppointmentsListerMode();
                                     handleTechnicalError(e.getMessage(), e);
@@ -271,11 +319,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void refresAppointmentsView(ServiceResponse<List<Appointment>> serverResponse) {
+        Log.i(TAG, "refresAppointmentsView");
         try {
             if (serverResponse.isOK()) {
                 insertDummyFreeAppointments(Appointment.appointmentsExList);
                 MainActivity.adapter.notifyDataSetChanged();
                 setAppointmentsView();
+
+                checkIfAppointmentShouldBeCancelled();
+
                 handleServerConfigration(serverResponse);
             } else {
                 handleBusinessErrorToast("Appointments load error " + serverResponse.getMessage());
@@ -286,15 +338,89 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void checkIfAppointmentShouldBeCancelled() {
+        Log.i(TAG, "Check if meeting should be cancelled");
+        ((TextView)findViewById(R.id.roomInformation)).setText("");
+        if (getCurrentAppointment() != null && !getCurrentAppointment().isVirtual() && !getCurrentAppointment().isConfirmed()) {
+            Log.i(TAG, "Auto cancel appointment" + getCurrentAppointment().isConfirmed());
+
+            int warningMinutes = getCurrentAppointment().getCancelWarningMinutes(settingsRoomx.getCancelMinuteShift() - 2, settingsRoomx.getCancelMinuteShift());
+            if ( warningMinutes != -1) {
+                ((TextView)findViewById(R.id.roomInformation)).setText("Appointment will cancelled in " + warningMinutes + " " + " minutes");
+            }
+
+            if (getCurrentAppointment().isAvailableForCancel(settingsRoomx.getCancelMinuteShift())) {
+
+
+                disableListenerMode();
+                disableAppointmentsListerMode();
+                progress.show();
+
+                Observable.concat(dataExchange.getCancelAppointmentObservable("TECHNICAL_USER", getCurrentAppointment().getID()).flatMap(new Func1<ServiceResponse<Boolean>, Observable<String>>() {
+                    @Override
+                    public Observable<String> call(ServiceResponse<Boolean> serviceResponse) {
+                        return Observable.just(String.valueOf(serviceResponse.isOK()));
+                    }
+                }), Observable.timer(10, TimeUnit.SECONDS).flatMap(new Func1<Long, Observable<String>>() {
+
+                    @Override
+                    public Observable<String> call(Long o) {
+                        return Observable.just(o.toString());
+                    }
+                }), dataExchange.getAppointmentsForRoomObservable(getRoomId()).flatMap(new Func1<ServiceResponse<List<Appointment>>, Observable<String>>() {
+
+                    @Override
+                    public Observable<String> call(ServiceResponse<List<Appointment>> serviceResponse) {
+
+                        return Observable.just(String.valueOf("Finished"));
+                    }
+                }))
+                        .subscribeOn(Schedulers.newThread()) // Create a new Thread
+                        .observeOn(AndroidSchedulers.mainThread()) // Use the UI thread
+                        .filter(new Func1<String, Boolean>() {
+                            @Override
+                            public Boolean call(String s) {
+                                return s.equals("Finished");
+                            }
+                        })
+                        .subscribe(new Action1<String>() {
+                                       @Override
+                                       public void call(String o) {
+                                           insertDummyFreeAppointments(Appointment.appointmentsExList);
+                                           MainActivity.adapter.notifyDataSetChanged();
+                                           setAppointmentsView();
+                                           progress.dismiss();
+                                           enableListenerMode();
+                                           enableAppointmentsListerMode();
+
+                                       }
+                                   },
+
+                                new Action1<Throwable>() {
+                                    public void call(Throwable e) {
+                                        Log.i(TAG, "----------observable events ERROR network " + e.getMessage());
+                                        handleTechnicalError(e.getMessage(), e);
+                                        progress.dismiss();
+                                        enableListenerMode();
+                                        enableAppointmentsListerMode();
+                                    }
+                                });
+
+
+            }
+
+        }
+    }
+
     private void handleServerConfigration(ServiceResponse<List<Appointment>> serverResponse) {
-        for(Event e : serverResponse.getEvents()){
+        for (Event e : serverResponse.getEvents()) {
             handleRoomxEvent(e);
         }
     }
 
     private void handleRoomxEvent(Event event) {
         Log.i(TAG, "EVENT ------------- " + event.toString());
-        if("RESTART".equals(event.getName())){
+        if ("RESTART".equals(event.getName())) {
             restartApp();
         }
     }
@@ -303,6 +429,7 @@ public class MainActivity extends AppCompatActivity {
         listenerModeSubscription = nfcEvents.distinct().subscribe(new Action1<String>() {
             @Override
             public void call(String userId) {
+                Log.i(TAG, "enableListenerMode  " + userId);
                 Appointment active = Appointment.getCurrentAppointment();
                 if (active == null) {
                     Toast.makeText(getApplicationContext(), R.string.no_meeting, Toast.LENGTH_SHORT).show();
@@ -344,7 +471,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void disableListenerMode() {
-        listenerModeSubscription.unsubscribe();
+        Log.i(TAG, "disableListenerMode " + listenerModeSubscription);
+        if (listenerModeSubscription != null) {
+            listenerModeSubscription.unsubscribe();
+        }
         listenerModeSubscription = null;
     }
 
@@ -367,29 +497,12 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
 
+            monitorInactiveDialogue();
+
             disableListenerMode();
             disableAppointmentsListerMode();
 
-            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-            builder.setTitle("Meeting subject:");
-            builder.setTitle("Create appointment? Enter subject and config by your id card");
-            input = new EditText(MainActivity.this);
-            input.setInputType(InputType.TYPE_CLASS_TEXT);
-            builder.setView(input);
-
-            builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.cancel();
-                    enableListenerMode();
-                    enableAppointmentsListerMode();
-                }
-            });
-
-            confirmAlert = builder.create();
-            confirmAlert.show();
-
-            final Subscription subscribe = Observable.concat(nfcEvents, Observable.just(""))
+            appointmentActionSubscription = Observable.concat(nfcEvents, Observable.just(""))
                     .subscribeOn(Schedulers.newThread()) // Create a new Thread
                     .observeOn(AndroidSchedulers.mainThread())
                     .first().subscribe(new Action1<String>() {
@@ -418,12 +531,14 @@ public class MainActivity extends AppCompatActivity {
                                     .subscribe(new Action1<Object>() {
                                                    @Override
                                                    public void call(Object object) {
+                                                       Log.i(TAG, "create appointment finished");
                                                        ServiceResponse response = (ServiceResponse) object;
                                                        refresAppointmentsView(response);
                                                        progress.dismiss();
                                                        confirmAlert.dismiss();
                                                        enableListenerMode();
                                                        enableAppointmentsListerMode();
+                                                       disableMonitorInactiveDialogue();
                                                    }
                                                },
 
@@ -433,6 +548,7 @@ public class MainActivity extends AppCompatActivity {
                                                     confirmAlert.dismiss();
                                                     enableListenerMode();
                                                     enableAppointmentsListerMode();
+                                                    disableMonitorInactiveDialogue();
                                                     handleTechnicalError(e.getMessage(), e);
                                                 }
                                             });
@@ -445,14 +561,74 @@ public class MainActivity extends AppCompatActivity {
                             handleTechnicalError(e.getMessage(), e);
                             enableListenerMode();
                             enableAppointmentsListerMode();
+                            disableMonitorInactiveDialogue();
                         }
                     });
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            builder.setTitle("Meeting subject:");
+            builder.setTitle("Create appointment? Enter subject and config by your id card (action will be cancelle automatically after 1 min)");
+            input = new EditText(MainActivity.this);
+            input.setInputType(InputType.TYPE_CLASS_TEXT);
+            builder.setView(input);
+
+            builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.cancel();
+                    appointmentActionSubscription.unsubscribe();
+                    enableListenerMode();
+                    enableAppointmentsListerMode();
+                }
+            });
+
+            confirmAlert = builder.create();
+            confirmAlert.setCancelable(false);
+            confirmAlert.show();
 
 
             Log.i(TAG, "----------create stop  ");
 
         }
     };
+
+    private void cancelConfirmAlert(){
+        confirmAlert.cancel();
+        appointmentActionSubscription.unsubscribe();
+        enableListenerMode();
+        enableAppointmentsListerMode();
+    }
+
+    private void disableMonitorInactiveDialogue() {
+        if (this.inactiveDialoguMonitor != null) {
+            this.inactiveDialoguMonitor.unsubscribe();
+            this.inactiveDialoguMonitor = null;
+        }
+    }
+
+    private void monitorInactiveDialogue() {
+
+        this.inactiveDialoguMonitor = Observable.interval(settingsRoomx.getMonitoriInactiveDialogueSeconds(), TimeUnit.SECONDS)
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<Object>() {
+                               @Override
+                               public void call(Object o) {
+
+                                   progress.hide();
+                                   refreshAppointmentsProgress.hide();
+                                   cancelConfirmAlert();
+                               }
+                           },
+
+                        new Action1<Throwable>() {
+                            public void call(Throwable e) {
+                                progress.hide();
+                                refreshAppointmentsProgress.hide();
+                                cancelConfirmAlert();
+                            }
+                        });
+    }
 
 
     private View.OnClickListener button3confirmListener = new View.OnClickListener() {
@@ -494,21 +670,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
             Log.i(TAG, "Cancel clicked");
+            monitorInactiveDialogue();
             disableListenerMode();
             disableAppointmentsListerMode();
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
-                    .setTitle("Cancell appointment?")
-                    .setMessage("User your card to confirm")
-                    .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            enableListenerMode();
-                            enableAppointmentsListerMode();
-                            dialog.cancel();
-                        }
-                    });
-            confirmAlert = builder.create();
-            confirmAlert.show();
 
 
             Log.i(TAG, "----------cancelstart  ");
@@ -560,7 +724,7 @@ public class MainActivity extends AppCompatActivity {
                                                                           confirmAlert.dismiss();
                                                                           enableListenerMode();
                                                                           enableAppointmentsListerMode();
-
+                                                                          disableMonitorInactiveDialogue();
                                                                       }
                                                                   },
 
@@ -575,6 +739,7 @@ public class MainActivity extends AppCompatActivity {
                                                                        confirmAlert.dismiss();
                                                                        enableListenerMode();
                                                                        enableAppointmentsListerMode();
+                                                                       disableMonitorInactiveDialogue();
                                                                    }
                                                                });
 
@@ -592,9 +757,25 @@ public class MainActivity extends AppCompatActivity {
                                     confirmAlert.dismiss();
                                     enableListenerMode();
                                     enableAppointmentsListerMode();
+                                    disableMonitorInactiveDialogue();
                                 }
                             });
 
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Cancel appointment?")
+                    .setMessage("User your card to confirm, if not action will be cancelled after 1 minute")
+                    .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            enableListenerMode();
+                            enableAppointmentsListerMode();
+                            subscribe.unsubscribe();
+                            dialog.cancel();
+                        }
+                    });
+            confirmAlert = builder.create();
+            confirmAlert.setCancelable(false);
+            confirmAlert.show();
 
         }
     };
@@ -695,10 +876,14 @@ public class MainActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.roomID)).setText(getRoomId());
 
         progress = new ProgressDialog(this);
-
-        progress.setTitle("Loading");
-        progress.setMessage("Wait while loading...");
+        progress.setTitle("Please wait");
+        progress.setMessage("Data synchronization");
         progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
+
+        refreshAppointmentsProgress = new ProgressDialog(this);
+        refreshAppointmentsProgress.setTitle("Please wait");
+        refreshAppointmentsProgress.setMessage("Data synchronization");
+        refreshAppointmentsProgress.setCancelable(false); // disable dismiss by tapping outside of the dialog
 
 
         Button confirmCreateButton = (Button) findViewById(R.id.buttonStart);
@@ -821,6 +1006,7 @@ public class MainActivity extends AppCompatActivity {
         TextView tVhost = (TextView) findViewById(R.id.textViewHost);
         TextView tVstart = (TextView) findViewById(R.id.textViewStart);
         TextView tVend = (TextView) findViewById(R.id.textViewEnd);
+        TextView tConfirmed = (TextView) findViewById(R.id.confirmedValue);
         Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
         buttonColors.setClickable(false);
 
@@ -853,6 +1039,7 @@ public class MainActivity extends AppCompatActivity {
             tVhost.setText(active.getOwner().getName());
             tVstart.setText(formatter.format(active.getStart()));
             tVend.setText(formatter.format(active.getEnd()));
+            tConfirmed.setText(String.valueOf(active.isConfirmed()));
 
             b1.setText(R.string.start);
             if (active.isConfirmed()) {
@@ -878,6 +1065,10 @@ public class MainActivity extends AppCompatActivity {
 
     public long getAppointmentRefereshIntervalSeconds() {
         return settingsRoomx.getAppointmentRefershIntervalSeconds();
+    }
+
+    public Appointment getCurrentAppointment() {
+        return Appointment.getCurrentAppointment();
     }
 
     private class NdefReaderTask extends AsyncTask<Tag, Void, String> {

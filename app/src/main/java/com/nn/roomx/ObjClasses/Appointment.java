@@ -4,12 +4,15 @@ import android.util.Log;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 
 /**
  * Created by Mikołaj on 01.12.2016.
  */
 public class Appointment {
+
+    private static final String TAG = "RoomX_Appointment";
 
     private String ID;
     private String subject;
@@ -133,7 +136,7 @@ public class Appointment {
                 }
                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 //  Log.d("getCurrentAppointment", "APP " + formatter.format(a.getStart()) + " " + formatter.format(a.getEnd()) + " " + now.after(a.getStart()) + " " +  a.getEnd().after(now));
-                Log.d("getCurrentAppointment", "CURRENT " + a.getSubject() + " "+ a.isVirtual());
+                Log.d("getCurrentAppointment", "CURRENT " + a.getSubject() + " " + a.isVirtual());
                 if (now.after(a.getStart()) && a.getEnd().after(now)) {
                     result = a;
                     return result;
@@ -159,5 +162,35 @@ public class Appointment {
 
     public boolean isVirtual() {
         return virtual;
+    }
+
+    public boolean isAvailableForCancel(int cancelMinuteShift) {
+
+        Calendar appCal = Calendar.getInstance();
+        appCal.setTime(getStart());
+        appCal.add(Calendar.MINUTE, cancelMinuteShift);
+
+        Log.i(TAG, getStart() + " ***** " + appCal.getTime() + " @@@@@@ " + new Date());
+
+        return new Date().after(appCal.getTime());
+
+    }
+
+    public int getCancelWarningMinutes(int waringMinuteShift, int cancelMinuteShift) {
+        Calendar appCalWarning = Calendar.getInstance();
+        appCalWarning.setTime(getStart());
+        appCalWarning.add(Calendar.MINUTE, waringMinuteShift);
+
+        Calendar appCalCancel = Calendar.getInstance();
+        appCalCancel.setTime(getStart());
+        appCalCancel.add(Calendar.MINUTE, cancelMinuteShift);
+
+        Log.i(TAG, getStart() + " ***** " + appCalWarning.getTime() + " @@@@@@ " + new Date());
+
+        if (new Date().after(appCalWarning.getTime())) {
+            return (int) ((appCalCancel.getTime().getTime() - new Date().getTime())/ (60 * 1000) % 60) + 1;
+        } else {
+            return -1;
+        }
     }
 }

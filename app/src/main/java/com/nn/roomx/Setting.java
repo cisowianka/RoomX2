@@ -14,14 +14,18 @@ public class Setting {
 
     private static final String SETTINGS_ROOM_ID = "roomID";
     private static final String SETTINGS_APPOINTMENT_REFRESH_INTERVAL_SECONDS = "appointmentRefereshIntervalSeconds";
+    private static final String SETTINGS_APPOINTMENT_CANCEL_MINUTE_SHIFT = "appointmentCacenMinuteShift";
 
     private static final String NO_ROOM = "NO_ROOM";
-    private static final int APPOINTMENT_CHECK_INTERVAL_SECONDS_DEFAULT = 10;
+    private static final int APPOINTMENT_CHECK_INTERVAL_SECONDS_DEFAULT = 15;
+    private static final int APPOINTMENT_CANCEL_MINUTE_SHIFT = 5;
 
     private String roomId;
     private String password = "a";
     private SharedPreferences sharedPreferences;
     private long appointmentRefershIntervalSeconds = APPOINTMENT_CHECK_INTERVAL_SECONDS_DEFAULT;
+    private int cancelMinuteShift = APPOINTMENT_CANCEL_MINUTE_SHIFT;
+    private int monitoriInactiveDialogueSeconds = 60;
 
     public Setting(SharedPreferences sharedPreferences) {
         this.sharedPreferences = sharedPreferences;
@@ -39,6 +43,7 @@ public class Setting {
     public void init() {
         this.roomId = sharedPreferences.getString(SETTINGS_ROOM_ID, NO_ROOM);
         this.appointmentRefershIntervalSeconds = sharedPreferences.getLong(SETTINGS_APPOINTMENT_REFRESH_INTERVAL_SECONDS, APPOINTMENT_CHECK_INTERVAL_SECONDS_DEFAULT);
+        this.cancelMinuteShift = sharedPreferences.getInt(SETTINGS_APPOINTMENT_CANCEL_MINUTE_SHIFT, APPOINTMENT_CANCEL_MINUTE_SHIFT);
         Log.i(TAG, "Settings init " + toString());
         //setRoomId(NO_ROOM);
         this.sharedPreferences = sharedPreferences;
@@ -74,8 +79,21 @@ public class Setting {
     @Override
     public String toString() {
         return "Setting{" +
-                "appointmentRefershIntervalSeconds=" + appointmentRefershIntervalSeconds +
-                ", roomId='" + roomId + '\'' +
+                "roomId='" + roomId + '\'' +
+                ", appointmentRefershIntervalSeconds=" + appointmentRefershIntervalSeconds +
+                ", cancelMinuteShift=" + cancelMinuteShift +
                 '}';
+    }
+
+    public int getCancelMinuteShift() {
+        return this.cancelMinuteShift;
+    }
+
+    public int getMonitoriInactiveDialogueSeconds() {
+        return monitoriInactiveDialogueSeconds;
+    }
+
+    public void setMonitoriInactiveDialogueSeconds(int monitoriInactiveDialogueSeconds) {
+        this.monitoriInactiveDialogueSeconds = monitoriInactiveDialogueSeconds;
     }
 }

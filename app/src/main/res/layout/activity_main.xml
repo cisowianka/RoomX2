@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <RelativeLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="25dp"
         android:paddingLeft="@dimen/activity_horizontal_margin"
@@ -20,7 +20,14 @@
             android:textColor="#FFFFFF"
             android:text="Room:" />
 
-    </RelativeLayout>
+        <TextView
+            android:id="@+id/roomInformation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:text=""
+            android:paddingLeft="100dp"/>
+    </LinearLayout>
 
     <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
@@ -90,6 +97,15 @@
                 android:textAppearance="?android:attr/textAppearanceMedium" />
 
             <TextView
+                android:id="@+id/confirmedLable"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/textView6"
+                android:text="Confirmed?"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <TextView
                 android:id="@+id/textViewStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -131,6 +147,15 @@
                 android:layout_height="wrap_content"
                 android:layout_alignStart="@+id/textViewStart"
                 android:layout_below="@+id/textViewStart"
+                android:text="------"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <TextView
+                android:id="@+id/confirmedValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignStart="@+id/textViewStart"
+                android:layout_below="@+id/textViewEnd"
                 android:text="------"
                 android:textAppearance="?android:attr/textAppearanceMedium" />
 

@@ -115,7 +115,7 @@ public class JSONParser {
             Person owner = new Person(c.getString("ownerMailbox"), c.getString("ownerName"));
 
             tmpApp.setOwner(owner);
-//            tmpApp.setConfirmed(c.getBoolean("confirmed"));
+            tmpApp.setConfirmed(c.getBoolean("confirmed"));
             //Log.e("RoomX", "parsed owner");
             JSONArray attendeess = c.getJSONArray("requiredAttetnde");
             tmpApp.setAttendees(new ArrayList<Person>());
