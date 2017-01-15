@@ -21,8 +21,9 @@ public class Appointment {
     private Person owner;
     private ArrayList<Person> attendees;
     private boolean isConfirmed = false;
-    public static ArrayList<Appointment> appointmentsExList = new ArrayList<>();
+  //  public static ArrayList<Appointment> appointmentsExList = new ArrayList<Appointment>();
     private boolean virtual = false;
+    private boolean selected = false;
 
     public Appointment(String ID, String subject, Date start, Date end, Person owner, ArrayList<Person> attendees, boolean confirmed) {
         this.ID = ID;
@@ -32,11 +33,11 @@ public class Appointment {
         this.owner = owner;
         this.attendees = attendees;
         setConfirmed(confirmed);
-        appointmentsExList.add(this);
+        //appointmentsExList.add(this);
     }
 
     public Appointment() {
-        appointmentsExList.add(this);
+        //appointmentsExList.add(this);
     }
 
     public String getID() {
@@ -125,28 +126,28 @@ public class Appointment {
         return result;
     }
 
-    public static Appointment getCurrentAppointment() {
-        Appointment result = null;
-        Log.e("getCurrentAppointment", "APPoinment siz " + appointmentsExList.size());
-        if (appointmentsExList.size() > 0) {
-            Date now = new Date();
-            for (Appointment a : appointmentsExList) {
-                if (a.isVirtual()) {
-                    continue;
-                }
-                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                //  Log.d("getCurrentAppointment", "APP " + formatter.format(a.getStart()) + " " + formatter.format(a.getEnd()) + " " + now.after(a.getStart()) + " " +  a.getEnd().after(now));
-                Log.d("getCurrentAppointment", "CURRENT " + a.getSubject() + " " + a.isVirtual());
-                if (now.after(a.getStart()) && a.getEnd().after(now)) {
-                    result = a;
-                    return result;
-                }
-            }
-            return result;
-        } else {
-            return null;
-        }
-    }
+//    public static Appointment getCurrentAppointment() {
+//        Appointment result = null;
+//        Log.e("getCurrentAppointment", "APPoinment siz " + appointmentsExList.size());
+//        if (appointmentsExList.size() > 0) {
+//            Date now = new Date();
+//            for (Appointment a : appointmentsExList) {
+//                if (a.isVirtual()) {
+//                    continue;
+//                }
+//                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//                //  Log.d("getCurrentAppointment", "APP " + formatter.format(a.getStart()) + " " + formatter.format(a.getEnd()) + " " + now.after(a.getStart()) + " " +  a.getEnd().after(now));
+//                Log.d("getCurrentAppointment", "CURRENT " + a.getSubject() + " " + a.isVirtual());
+//                if (now.after(a.getStart()) && a.getEnd().after(now)) {
+//                    result = a;
+//                    return result;
+//                }
+//            }
+//            return result;
+//        } else {
+//            return null;
+//        }
+//    }
 
     public boolean isConfirmed() {
         return isConfirmed;
@@ -192,5 +193,13 @@ public class Appointment {
         } else {
             return -1;
         }
+    }
+
+    public void setSelected(boolean selected) {
+        this.selected = selected;
+    }
+
+    public boolean isSelected() {
+        return selected;
     }
 }

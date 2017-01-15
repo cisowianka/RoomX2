@@ -18,7 +18,7 @@ public class Setting {
 
     private static final String NO_ROOM = "NO_ROOM";
     private static final int APPOINTMENT_CHECK_INTERVAL_SECONDS_DEFAULT = 15;
-    private static final int APPOINTMENT_CANCEL_MINUTE_SHIFT = 5;
+    private static final int APPOINTMENT_CANCEL_MINUTE_SHIFT = 15;
 
     private String roomId;
     private String password = "a";
@@ -63,7 +63,6 @@ public class Setting {
     }
 
     public boolean checkAdminPassword(String passwordIn) {
-        Log.i("00000==============", passwordIn + " " + password + " " + password.equals(passwordIn));
         return password.equals(passwordIn);
     }
 

@@ -34,7 +34,7 @@ public class JSONParser {
     public List<Room> parseRoomList(String response) throws JSONException {
         reader = new JSONObject(response);
         JSONArray roomsJSON = reader.getJSONArray("rooms");
-        List<Room> rooms = new ArrayList<>();
+        List<Room> rooms = new ArrayList<Room>();
 
         for (int i = 0; i < roomsJSON.length(); i++) {
             Room room = new Room(roomsJSON.getJSONObject(i).getString("mailboxId"));
@@ -47,7 +47,7 @@ public class JSONParser {
     public List<Event> parseEvents(String response) throws JSONException {
         reader = new JSONObject(response);
         JSONArray roomsJSON = reader.getJSONArray("events");
-        List<Event> events = new ArrayList<>();
+        List<Event> events = new ArrayList<Event>();
 
         for (int i = 0; i < roomsJSON.length(); i++) {
             Event event = new Event();
@@ -65,7 +65,7 @@ public class JSONParser {
     public List<SystemProperty> parseSystemProperties(String response) throws JSONException {
         reader = new JSONObject(response);
         JSONArray roomsJSON = reader.getJSONArray("events");
-        List<SystemProperty> properties = new ArrayList<>();
+        List<SystemProperty> properties = new ArrayList<SystemProperty>();
 
         for (int i = 0; i < roomsJSON.length(); i++) {
             SystemProperty property = new SystemProperty();
@@ -81,12 +81,13 @@ public class JSONParser {
     }
 
 
-    public boolean parseAppointmentsList(String response) throws JSONException {
+    public List<Appointment> parseAppointmentsList(String response) throws JSONException {
         reader = new JSONObject(response);
         Log.e("RoomX", "parsing appointments");
         JSONArray appointments = reader.getJSONArray("appointments");
 
-        Appointment.appointmentsExList.clear();
+        //Appointment.appointmentsExList.clear();
+        List<Appointment> result = new ArrayList<Appointment>();
 
         for (int i = 0; i < appointments.length(); i++) {
 
@@ -111,6 +112,7 @@ public class JSONParser {
             tmpApp.setStart(startDate);
             tmpApp.setEnd(endDate);
             tmpApp.setSubject(c.getString("subject"));
+            tmpApp.setVirtual(c.getBoolean("isVirtual"));
             //Log.e("RoomX", "parsed base data");
             Person owner = new Person(c.getString("ownerMailbox"), c.getString("ownerName"));
 
@@ -129,9 +131,10 @@ public class JSONParser {
                 tmpApp.getAttendees().add(attNew);
             }
             Log.e("RoomX", "prsing finished - success?");
+            result.add(tmpApp);
         }
 
-        return true;
+        return result;
     }
 
 

@@ -1,6 +1,7 @@
 package com.nn.roomx;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -15,19 +16,21 @@ import android.nfc.Tag;
 import android.nfc.tech.Ndef;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import android.os.CountDownTimer;
 import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.RotateAnimation;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -37,6 +40,8 @@ import com.nn.roomx.ObjClasses.Appointment;
 import com.nn.roomx.ObjClasses.Event;
 import com.nn.roomx.ObjClasses.Room;
 import com.nn.roomx.ObjClasses.ServiceResponse;
+import com.nn.roomx.view.CircularProgressBar;
+import com.nn.roomx.view.DialogueHelper;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -62,7 +67,7 @@ import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     private static final String TAG = "RoomX";
     private static final String MIME_TEXT_PLAIN = "text/plain";
@@ -72,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
     private final Subject<String, String> nfcEvents = new SerializedSubject<String, String>(PublishSubject.<String>create());
 
     //TODO: should be private
-    public static ArrayAdapter<Appointment> adapter;
+    private ArrayAdapter<Appointment> adapter;
 
     private DataExchange dataExchange = new DataExchange();
     private ProgressDialog progress = null;
@@ -86,6 +91,9 @@ public class MainActivity extends AppCompatActivity {
     private Subscription appointmentListenerSub = null;
     private Subscription inactiveDialoguMonitor;
     private Subscription appointmentActionSubscription;
+    private List<Appointment> appointmentsList = new ArrayList<Appointment>();
+    private Appointment currentAppointment = new Appointment();
+    private CountDownTimer countDownTimer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,9 +104,11 @@ public class MainActivity extends AppCompatActivity {
         readSettings();
         checkIfStartedAfterCrush();
 
-        setupNFC();
+        // setupNFC();
         initView();
         initListeners();
+
+
     }
 
     @Override
@@ -121,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public synchronized void onResume() {
         super.onResume();
-        setupForegroundDispatch(this, mNfcAdapter);
+        // setupForegroundDispatch(this, mNfcAdapter);
         readSettings();
     }
 
@@ -284,7 +294,13 @@ public class MainActivity extends AppCompatActivity {
                                                        handleTechnicalError(e.getMessage(), e);
                                                    }
                                                })
-                                               .retry()
+                                               .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
+                                                   @Override
+                                                   public Observable<?> call(Observable<? extends Throwable> observable) {
+                                                       return Observable.timer(2000,
+                                                               TimeUnit.MILLISECONDS);
+                                                   }
+                                               })
                                                .subscribe(new Action1<ServiceResponse<List<Appointment>>>() {
                                                               @Override
                                                               public void call(ServiceResponse<List<Appointment>> o) {
@@ -322,9 +338,11 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "refresAppointmentsView");
         try {
             if (serverResponse.isOK()) {
-                insertDummyFreeAppointments(Appointment.appointmentsExList);
-                MainActivity.adapter.notifyDataSetChanged();
+                this.appointmentsList = serverResponse.getResponseObject();
+                this.currentAppointment = appointmentsList.get(0);
+                selectOnTimeLine(0);
                 setAppointmentsView();
+                refreshTimeLine();
 
                 checkIfAppointmentShouldBeCancelled();
 
@@ -334,19 +352,33 @@ public class MainActivity extends AppCompatActivity {
             }
         } catch (Throwable e) {
             handleTechnicalError(e.getMessage(), e);
+            this.appointmentsList = new ArrayList<Appointment>();
+            this.currentAppointment = new Appointment();
+            currentAppointment.setVirtual(true);
+            currentAppointment.setStart(new Date());
+            currentAppointment.setEnd(new Date());
 
         }
     }
 
+    private void selectOnTimeLine(int index) {
+        for (Appointment a : this.appointmentsList) {
+            a.setSelected(false);
+        }
+
+        this.appointmentsList.get(index).setSelected(true);
+        this.currentAppointment = this.appointmentsList.get(index);
+    }
+
     private void checkIfAppointmentShouldBeCancelled() {
         Log.i(TAG, "Check if meeting should be cancelled");
-        ((TextView)findViewById(R.id.roomInformation)).setText("");
+        ((TextView) findViewById(R.id.roomInformation)).setText("");
         if (getCurrentAppointment() != null && !getCurrentAppointment().isVirtual() && !getCurrentAppointment().isConfirmed()) {
             Log.i(TAG, "Auto cancel appointment" + getCurrentAppointment().isConfirmed());
 
             int warningMinutes = getCurrentAppointment().getCancelWarningMinutes(settingsRoomx.getCancelMinuteShift() - 2, settingsRoomx.getCancelMinuteShift());
-            if ( warningMinutes != -1) {
-                ((TextView)findViewById(R.id.roomInformation)).setText("Appointment will cancelled in " + warningMinutes + " " + " minutes");
+            if (warningMinutes != -1) {
+                ((TextView) findViewById(R.id.roomInformation)).setText("Appointment will cancelled in " + warningMinutes + " " + " minutes");
             }
 
             if (getCurrentAppointment().isAvailableForCancel(settingsRoomx.getCancelMinuteShift())) {
@@ -367,27 +399,15 @@ public class MainActivity extends AppCompatActivity {
                     public Observable<String> call(Long o) {
                         return Observable.just(o.toString());
                     }
-                }), dataExchange.getAppointmentsForRoomObservable(getRoomId()).flatMap(new Func1<ServiceResponse<List<Appointment>>, Observable<String>>() {
-
-                    @Override
-                    public Observable<String> call(ServiceResponse<List<Appointment>> serviceResponse) {
-
-                        return Observable.just(String.valueOf("Finished"));
-                    }
-                }))
-                        .subscribeOn(Schedulers.newThread()) // Create a new Thread
-                        .observeOn(AndroidSchedulers.mainThread()) // Use the UI thread
-                        .filter(new Func1<String, Boolean>() {
-                            @Override
-                            public Boolean call(String s) {
-                                return s.equals("Finished");
-                            }
-                        })
-                        .subscribe(new Action1<String>() {
+                }), dataExchange.getAppointmentsForRoomObservable(getRoomId()))
+                        .subscribeOn(Schedulers.newThread())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .last()
+                        .subscribe(new Action1<Object>() {
                                        @Override
-                                       public void call(String o) {
-                                           insertDummyFreeAppointments(Appointment.appointmentsExList);
-                                           MainActivity.adapter.notifyDataSetChanged();
+                                       public void call(Object o) {
+                                           ServiceResponse<List<Appointment>> response = (ServiceResponse<List<Appointment>>) o;
+                                           refresAppointmentsView(response);
                                            setAppointmentsView();
                                            progress.dismiss();
                                            enableListenerMode();
@@ -430,8 +450,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void call(String userId) {
                 Log.i(TAG, "enableListenerMode  " + userId);
-                Appointment active = Appointment.getCurrentAppointment();
-                if (active == null) {
+                Appointment active = getCurrentAppointment();
+                if (active == null || active.isVirtual()) {
                     Toast.makeText(getApplicationContext(), R.string.no_meeting, Toast.LENGTH_SHORT).show();
                     return;
                 }
@@ -503,7 +523,7 @@ public class MainActivity extends AppCompatActivity {
             disableAppointmentsListerMode();
 
             appointmentActionSubscription = Observable.concat(nfcEvents, Observable.just(""))
-                    .subscribeOn(Schedulers.newThread()) // Create a new Thread
+                    .subscribeOn(Schedulers.newThread())
                     .observeOn(AndroidSchedulers.mainThread())
                     .first().subscribe(new Action1<String>() {
                         @Override
@@ -565,14 +585,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
 
-            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-            builder.setTitle("Meeting subject:");
-            builder.setTitle("Create appointment? Enter subject and config by your id card (action will be cancelle automatically after 1 min)");
-            input = new EditText(MainActivity.this);
-            input.setInputType(InputType.TYPE_CLASS_TEXT);
-            builder.setView(input);
-
-            builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+            confirmAlert = DialogueHelper.getCreateAppointmnetDialogue(MainActivity.this, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.cancel();
@@ -582,17 +595,13 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            confirmAlert = builder.create();
-            confirmAlert.setCancelable(false);
             confirmAlert.show();
-
-
             Log.i(TAG, "----------create stop  ");
 
         }
     };
 
-    private void cancelConfirmAlert(){
+    private void cancelConfirmAlert() {
         confirmAlert.cancel();
         appointmentActionSubscription.unsubscribe();
         enableListenerMode();
@@ -634,18 +643,18 @@ public class MainActivity extends AppCompatActivity {
     private View.OnClickListener button3confirmListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
-
-            try {
-                dataExchange.confirmStarted(Appointment.appointmentsExList.get(0).getOwner().getID(), Appointment.appointmentsExList.get(0).getID());
-            } catch (Exception e) {
-                handleTechnicalError(e.getMessage(), e);
-            }
-            Button b1 = (Button) findViewById(R.id.buttonStart);
-            b1.setVisibility(View.INVISIBLE);
-
-            for (Appointment ax : Appointment.appointmentsExList) {
-                Log.v("RoomX", ax.toString());
-            }
+            //TODO:
+//            try {
+//                dataExchange.confirmStarted(Appointment.appointmentsExList.get(0).getOwner().getID(), Appointment.appointmentsExList.get(0).getID());
+//            } catch (Exception e) {
+//                handleTechnicalError(e.getMessage(), e);
+//            }
+//            Button b1 = (Button) findViewById(R.id.buttonStart);
+//            b1.setVisibility(View.INVISIBLE);
+//
+//            for (Appointment ax : Appointment.appointmentsExList) {
+//                Log.v("RoomX", ax.toString());
+//            }
         }
     };
 
@@ -687,7 +696,7 @@ public class MainActivity extends AppCompatActivity {
                                                        + userId, Toast.LENGTH_SHORT).show();
                                                Log.i(TAG, "nfcEvents ----------observable events cancel  " + userId);
 
-                                               Observable.concat(dataExchange.getCancelAppointmentObservable(userId, Appointment.getCurrentAppointment().getID()).flatMap(new Func1<ServiceResponse<Boolean>, Observable<String>>() {
+                                               Observable.concat(dataExchange.getCancelAppointmentObservable(userId, getCurrentAppointment().getID()).flatMap(new Func1<ServiceResponse<Boolean>, Observable<String>>() {
                                                    @Override
                                                    public Observable<String> call(ServiceResponse<Boolean> serviceResponse) {
                                                        return Observable.just(String.valueOf(serviceResponse.isOK()));
@@ -708,18 +717,12 @@ public class MainActivity extends AppCompatActivity {
                                                }))
                                                        .subscribeOn(Schedulers.newThread()) // Create a new Thread
                                                        .observeOn(AndroidSchedulers.mainThread()) // Use the UI thread
-                                                       .filter(new Func1<String, Boolean>() {
-                                                           @Override
-                                                           public Boolean call(String s) {
-                                                               return s.equals("Finished");
-                                                           }
-                                                       })
-                                                       .subscribe(new Action1<String>() {
+                                                       .last()
+                                                       .subscribe(new Action1<Object>() {
                                                                       @Override
-                                                                      public void call(String o) {
-                                                                          insertDummyFreeAppointments(Appointment.appointmentsExList);
-                                                                          MainActivity.adapter.notifyDataSetChanged();
-                                                                          setAppointmentsView();
+                                                                      public void call(Object o) {
+                                                                          ServiceResponse<List<Appointment>> response = (ServiceResponse<List<Appointment>>) o;
+                                                                          refresAppointmentsView(response);
                                                                           progress.dismiss();
                                                                           confirmAlert.dismiss();
                                                                           enableListenerMode();
@@ -790,7 +793,7 @@ public class MainActivity extends AppCompatActivity {
     private void setupNFC() {
         mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
         if (!checkNFCenabled()) {
-            Toast.makeText(this, "This device doesn't support NFC.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "This device doesn't support NFC.", Toast.LENGTH_SHORT).show();
             return;
         }
         handleIntent(getIntent());
@@ -798,13 +801,13 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean checkNFCenabled() {
         if (mNfcAdapter == null) {
-            Toast.makeText(this, "This device doesn't support NFC.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "This device doesn't support NFC.", Toast.LENGTH_SHORT).show();
             finish();
             return false;
         }
 
         if (!mNfcAdapter.isEnabled()) {
-            Toast.makeText(this, "NFC disabled", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "NFC disabled", Toast.LENGTH_SHORT).show();
             return false;
         }
         return true;
@@ -895,38 +898,33 @@ public class MainActivity extends AppCompatActivity {
         Button buttonCancel = (Button) findViewById(R.id.buttonCancel);
         buttonCancel.setOnClickListener(buttonCancelListener);
 
-        adapter = new ArrayAdapter<Appointment>(MainActivity.this, android.R.layout.simple_list_item_1, Appointment.appointmentsExList);
+
+    }
+
+    private void refreshTimeLine() {
+        adapter = new TimelineAdapter(MainActivity.this, this.appointmentsList);
         final ListView lv = (ListView) findViewById(R.id.listView);
         lv.setAdapter(adapter);
 
 
-        lv.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(final AdapterView<?> parent, final View view, final int position, long id) {
-                return true;
-            }
-        });
-
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
-                Appointment toUpdate = (Appointment) lv.getItemAtPosition(position);
-
-                if (toUpdate.getID() != null)
-                    Toast.makeText(MainActivity.this, toUpdate.getSubject() + " " + toUpdate.getOwner().getName(), Toast.LENGTH_LONG).show();
+                selectOnTimeLine(position);
+                setAppointmentsView();
+                refreshTimeLine();
             }
         });
     }
 
     private void handleBusinessErrorToast(String message) {
         Log.i(TAG, "handle communication error " + message);
-        Toast.makeText(this, getResources().getString(R.string.communication_error) + message, Toast.LENGTH_LONG).show();
+        Toast.makeText(this, getResources().getString(R.string.communication_error) + message, Toast.LENGTH_SHORT).show();
     }
 
     private void handleTechnicalError(String msg, Throwable e) {
         Log.e(TAG, "handle communication error " + msg, e);
-        Toast.makeText(this, getResources().getString(R.string.communication_error) + msg, Toast.LENGTH_LONG).show();
+        Toast.makeText(this, getResources().getString(R.string.communication_error) + msg, Toast.LENGTH_SHORT).show();
         dataExchange.getCreateErrorReportObservable(getRoomId(), msg, e)
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -943,85 +941,33 @@ public class MainActivity extends AppCompatActivity {
                         });
     }
 
-    private void insertDummyFreeAppointments(ArrayList<Appointment> appointmentsExList) {
-
-        if (appointmentsExList.size() == 0) {
-            return;
-        }
-
-        //od tej chwili
-        Date now = new Date();
-
-        ArrayList<Date> borders = new ArrayList<Date>();
-
-        for (Appointment normal : appointmentsExList) {
-            borders.add(normal.getStart());
-            borders.add(normal.getEnd());
-        }
-
-        borders.remove(0);
-
-        if (appointmentsExList.size() == 1) {
-            Appointment dummy = new Appointment();
-            dummy.setSubject(getResources().getString(R.string.free));
-            dummy.setStart(now);
-            dummy.setEnd(appointmentsExList.get(0).getStart());
-            dummy.setVirtual(true);
-        }
-
-        for (int i = 0; i < borders.size(); i = i + 2) {
-            if (i + 1 < borders.size() && borders.get(i).equals(borders.get(i + 1))) {
-                continue;
-            }
-
-
-            Appointment dummy = new Appointment();
-            dummy.setSubject(getResources().getString(R.string.free));
-            dummy.setStart(borders.get(i));
-            dummy.setVirtual(true);
-
-            if (i + 1 < borders.size()) {
-                dummy.setEnd(borders.get(i + 1));
-            }
-
-        }
-
-        Collections.sort(appointmentsExList, new Comparator<Appointment>() {
-            @Override
-            public int compare(Appointment t0, Appointment t1) {
-
-                if (t0.getStart().after(t1.getStart())) {
-                    return 1;
-                }
-
-                return -1;
-            }
-        });
-    }
-
-
     private void setAppointmentsView() {
-        TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
-        TextView tVstatus = (TextView) findViewById(R.id.textViewStatus);
+//        TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
+//        TextView tVstatus = (TextView) findViewById(R.id.textViewStatus);
         TextView tVhost = (TextView) findViewById(R.id.textViewHost);
         TextView tVstart = (TextView) findViewById(R.id.textViewStart);
         TextView tVend = (TextView) findViewById(R.id.textViewEnd);
-        TextView tConfirmed = (TextView) findViewById(R.id.confirmedValue);
-        Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
-        buttonColors.setClickable(false);
+//        TextView tConfirmed = (TextView) findViewById(R.id.confirmedValue);
+//        Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
+//        buttonColors.setClickable(false);
 
         Button b1 = (Button) findViewById(R.id.buttonStart);
         Button b2 = (Button) findViewById(R.id.buttonCancel);
         Button b3 = (Button) findViewById(R.id.buttonFinish);
 
-        Appointment active = Appointment.getCurrentAppointment();
+        Appointment active = getCurrentAppointment();
         Log.e("SETCURRENTAPP ", "" + active);
 
-        if (active == null) {
-            tVsubj.setText("");
-            tVstatus.setText(R.string.free);
-            buttonColors.setVisibility(View.VISIBLE);
-            buttonColors.setBackgroundColor(Color.GREEN);
+
+        int diff = (int)(getCurrentAppointment().getEnd().getTime() - new Date().getTime()) / 1000;
+
+        startTimers(diff);
+
+        if (active.isVirtual()) {
+//            tVsubj.setText("");
+//            tVstatus.setText(R.string.free);
+//            buttonColors.setVisibility(View.VISIBLE);
+//            buttonColors.setBackgroundColor(Color.GREEN);
             tVhost.setText("");
             tVstart.setText("");
             tVend.setText("");
@@ -1033,13 +979,13 @@ public class MainActivity extends AppCompatActivity {
             b1.setOnClickListener(buttonCreateListener);
         } else {
             SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
-            buttonColors.setVisibility(View.INVISIBLE);
-            tVsubj.setText(active.getSubject());
-            tVstatus.setText(R.string.busy);
+//            buttonColors.setVisibility(View.INVISIBLE);
+//            tVsubj.setText(active.getSubject());
+//            tVstatus.setText(R.string.busy);
             tVhost.setText(active.getOwner().getName());
             tVstart.setText(formatter.format(active.getStart()));
             tVend.setText(formatter.format(active.getEnd()));
-            tConfirmed.setText(String.valueOf(active.isConfirmed()));
+//            tConfirmed.setText(String.valueOf(active.isConfirmed()));
 
             b1.setText(R.string.start);
             if (active.isConfirmed()) {
@@ -1063,12 +1009,50 @@ public class MainActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.roomID)).setText(roomId);
     }
 
+    private void startTimers(final int secondsInit) {
+
+        if(countDownTimer != null){
+            countDownTimer.cancel();
+        }
+
+        final CircularProgressBar secondsTimer = (CircularProgressBar) findViewById(R.id.secondsBar);
+        final CircularProgressBar minutesTimer = (CircularProgressBar) findViewById(R.id.minutesBar);
+
+        countDownTimer = new CountDownTimer(secondsInit * 1000, 500) {
+            @Override
+            public void onTick(long leftTimeInMilliseconds) {
+                long seconds = leftTimeInMilliseconds / 1000;
+                long minutes = seconds / 60;
+                int percentageSeconds = (int) seconds % 60 * 100 / 60;
+                int percentageMinutes = (int) seconds / 60 * 100 / 60;
+                secondsTimer.setProgress(percentageSeconds);
+                secondsTimer.setTitle(String.format("%02d", seconds % 60));
+                secondsTimer.setSubTitle("Sek");
+
+                minutesTimer.setProgress(percentageMinutes);
+                minutesTimer.setTitle(String.format("%02d", seconds / 60));
+                minutesTimer.setSubTitle("Min");
+           //     Log.i(TAG, leftTimeInMilliseconds + " Timcer " + seconds + " " +  percentageSeconds + " " + percentageMinutes);
+//                secondsText.setText(String.format("%02d", seconds % 60));
+//                minutesText.setText(String.format("%02d", seconds / 60));
+
+            }
+
+            @Override
+            public void onFinish() {
+
+            }
+        }.start();
+
+    }
+
+
     public long getAppointmentRefereshIntervalSeconds() {
         return settingsRoomx.getAppointmentRefershIntervalSeconds();
     }
 
     public Appointment getCurrentAppointment() {
-        return Appointment.getCurrentAppointment();
+        return this.currentAppointment;
     }
 
     private class NdefReaderTask extends AsyncTask<Tag, Void, String> {

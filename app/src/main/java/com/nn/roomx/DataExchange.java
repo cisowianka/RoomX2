@@ -55,7 +55,7 @@ public class DataExchange {
         return Observable.create(new Observable.OnSubscribe<ServiceResponse<List<Room>>>() {
             @Override
             public void call(Subscriber<? super ServiceResponse<List<Room>>> subscriber) {
-                ServiceResponse<List<Room>> response = new ServiceResponse<>();
+                ServiceResponse<List<Room>> response = new ServiceResponse<List<Room>>();
                 try {
                     Log.i(TAG, "get rooms ");
 
@@ -81,15 +81,15 @@ public class DataExchange {
         return Observable.create(new Observable.OnSubscribe<ServiceResponse<List<Appointment>>>() {
             @Override
             public void call(Subscriber<? super ServiceResponse<List<Appointment>>> subscriber) {
-                ServiceResponse<List<Appointment>> response = new ServiceResponse<>();
+                ServiceResponse<List<Appointment>> response = new ServiceResponse<List<Appointment>>();
                 try {
                     Log.i(TAG, "get room appointments " + roomId);
 
                     String urlGet = URL_STRING + "/MeetProxy/services/appointment?" + addParamToURL("room", roomId);
                     String respString = downloadUrl(new URL(urlGet));
-                    jsonparser.parseAppointmentsList(respString);
+
                     response.ok();
-                    response.setResponseObject(Appointment.appointmentsExList);
+                    response.setResponseObject(jsonparser.parseAppointmentsList(respString));
                     response.setEvents(jsonparser.parseEvents(respString));
                     response.setProperties(jsonparser.parseSystemProperties(respString));
 
@@ -109,7 +109,7 @@ public class DataExchange {
         return Observable.create(new Observable.OnSubscribe<ServiceResponse<Boolean>>() {
             @Override
             public void call(Subscriber<? super ServiceResponse<Boolean>> subscriber) {
-                ServiceResponse<Boolean> response = new ServiceResponse<>();
+                ServiceResponse<Boolean> response = new ServiceResponse<Boolean>();
 
                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -139,7 +139,7 @@ public class DataExchange {
         return Observable.create(new Observable.OnSubscribe<ServiceResponse<Boolean>>() {
             @Override
             public void call(Subscriber<? super ServiceResponse<Boolean>> subscriber) {
-                ServiceResponse<Boolean> response = new ServiceResponse<>();
+                ServiceResponse<Boolean> response = new ServiceResponse<Boolean>();
                 try {
                     StringWriter sw = new StringWriter();
                     PrintWriter pw = new PrintWriter(sw);
@@ -170,7 +170,7 @@ public class DataExchange {
         return Observable.create(new Observable.OnSubscribe<ServiceResponse<Boolean>>() {
             @Override
             public void call(Subscriber<? super ServiceResponse<Boolean>> subscriber) {
-                ServiceResponse<Boolean> response = new ServiceResponse<>();
+                ServiceResponse<Boolean> response = new ServiceResponse<Boolean>();
 
                 try {
                     String urlGet = URL_STRING + "/MeetProxy/services/appointment/confirm?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", meetingId);
@@ -195,7 +195,7 @@ public class DataExchange {
         return Observable.create(new Observable.OnSubscribe<ServiceResponse<Boolean>>() {
             @Override
             public void call(Subscriber<? super ServiceResponse<Boolean>> subscriber) {
-                ServiceResponse<Boolean> response = new ServiceResponse<>();
+                ServiceResponse<Boolean> response = new ServiceResponse<Boolean>();
                 String urlGet = "";
                 try {
                     urlGet = URL_STRING + "/MeetProxy/services/appointment/cancel?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", appointmentID);
@@ -217,171 +217,12 @@ public class DataExchange {
         });
     }
 
-    public ServiceResponse<List<Appointment>> getMeetingsForRoom(String roomId) throws Exception {
-
-        AsyncTask<String, Void, ServiceResponse<List<Appointment>>> appointmentTask = new ReadAppointmentsTask().execute(roomId);
-
-        ServiceResponse<List<Appointment>> appointments = appointmentTask.get();
-
-        MainActivity.adapter.notifyDataSetChanged();
-        return appointments;
-
-    }
 
     public ServiceResponse<Boolean> confirmStarted(String userId, String meetingId) throws Exception {
-        AsyncTask<String, Void, ServiceResponse<Boolean>> confirmTask = new ConfirmTask().execute(userId, meetingId);
 
-        ServiceResponse<Boolean> confirmResult = confirmTask.get();
 
-        return confirmResult;
+        return null;
 
-    }
-
-    public ServiceResponse<Boolean> cancel(String userId, String meetingId) throws Exception {
-        AsyncTask<String, Void, ServiceResponse<Boolean>> cancelTask = new CancelTask().execute(userId, meetingId);
-
-        ServiceResponse<Boolean> cancelResult = cancelTask.get();
-
-        return cancelResult;
-    }
-
-    public ServiceResponse<Boolean> create(String userId, String roomId, String subject, Date start, Date end) throws Exception {
-        AsyncTask<Object, Void, ServiceResponse<Boolean>> createTask = new CreateTask().execute(userId, roomId, subject, start, end);
-
-        ServiceResponse<Boolean> createResult = createTask.get();
-
-        return createResult;
-    }
-
-    public ServiceResponse<Boolean> finish(String userId, String meetingID) throws Exception {
-        AsyncTask<String, Void, ServiceResponse<Boolean>> finishTask = new FinishTask().execute(userId, meetingID);
-
-        ServiceResponse<Boolean> finishResult = finishTask.get();
-
-        return finishResult;
-    }
-
-    private class ReadAppointmentsTask extends AsyncTask<String, Void, ServiceResponse<List<Appointment>>> {
-
-        @Override
-        protected ServiceResponse<List<Appointment>> doInBackground(String... params) {
-            String room = params[0];
-            ServiceResponse<List<Appointment>> response = new ServiceResponse<>();
-            try {
-                String urlGet = URL_STRING + "/MeetProxy/services/appointment?" + addParamToURL("room", room);
-                String respString = downloadUrl(new URL(urlGet));
-                jsonparser.parseAppointmentsList(respString);
-                response.ok();
-                response.setResponseObject(Appointment.appointmentsExList);
-                return response;
-            } catch (Exception e) {
-                response.fail();
-                response.setMessage(e.getMessage());
-                e.printStackTrace();
-                return response;
-            }
-        }
-
-    }
-
-    private class ConfirmTask extends AsyncTask<String, Void, ServiceResponse<Boolean>> {
-
-        @Override
-        protected ServiceResponse<Boolean> doInBackground(String... params) {
-            String memberID = params[0];
-            String appointmentID = params[1];
-
-            ServiceResponse<Boolean> response = new ServiceResponse<>();
-            try {
-                String urlGet = URL_STRING + "/MeetProxy/services/appointment/confirm?" + addParamToURL("memberID", memberID) + "&" + addParamToURL("appointmentID", appointmentID);
-                String respString = downloadUrl(new URL(urlGet));
-                response.ok();
-                response.setResponseObject(true);
-                return response;
-            } catch (Exception e) {
-                response.fail();
-                response.setResponseObject(false);
-                response.setMessage(e.getMessage());
-                e.printStackTrace();
-                return response;
-            }
-        }
-    }
-
-    private class CancelTask extends AsyncTask<String, Void, ServiceResponse<Boolean>> {
-
-        @Override
-        protected ServiceResponse<Boolean> doInBackground(String... params) {
-            String memberID = params[0];
-            String appointmentID = params[1];
-
-            ServiceResponse<Boolean> response = new ServiceResponse<>();
-            try {
-                String urlGet = URL_STRING + "/MeetProxy/services/appointment/cancel?" + addParamToURL("memberID", memberID) + "&" + addParamToURL("appointmentID", appointmentID);
-                String respString = downloadUrl(new URL(urlGet));
-                response.ok();
-                response.setResponseObject(true);
-                return response;
-            } catch (Exception e) {
-                response.fail();
-                response.setResponseObject(false);
-                response.setMessage(e.getMessage());
-                e.printStackTrace();
-                return response;
-            }
-        }
-    }
-
-    private class CreateTask extends AsyncTask<Object, Void, ServiceResponse<Boolean>> {
-
-        @Override
-        protected ServiceResponse<Boolean> doInBackground(Object... params) {
-            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            String userId = (String) params[0];
-            String roomId = (String) params[1];
-            String subject = (String) params[2];
-            String start = formatter.format((Date) params[3]);
-            String end = formatter.format((Date) params[4]);
-
-            ServiceResponse<Boolean> response = new ServiceResponse<>();
-            try {
-                String urlGet = URL_STRING + "/MeetProxy/services/appointment/create?" + addParamToURL("roomID", roomId) + "&" + addParamToURL("memberID", userId) + "&" + addParamToURL("subject", subject) + "&" + addParamToURL("start", start) + "&" + addParamToURL("end", end);
-                String respString = downloadUrl(new URL(urlGet));
-                response.ok();
-                response.setResponseObject(true);
-                return response;
-            } catch (Exception e) {
-                response.fail();
-                response.setResponseObject(false);
-                response.setMessage(e.getMessage());
-                e.printStackTrace();
-                return response;
-            }
-        }
-    }
-
-    private class FinishTask extends AsyncTask<String, Void, ServiceResponse<Boolean>> {
-
-        @Override
-        protected ServiceResponse<Boolean> doInBackground(String... params) {
-            String memberID = params[0];
-            String appointmentID = params[1];
-
-            ServiceResponse<Boolean> response = new ServiceResponse<>();
-            try {
-                String urlGet = URL_STRING + "/MeetProxy/services/appointment/finish?" + addParamToURL("memberID", memberID) + "&" + addParamToURL("appointmentID", appointmentID);
-                String respString = downloadUrl(new URL(urlGet));
-                response.ok();
-                response.setResponseObject(true);
-                return response;
-            } catch (Exception e) {
-                response.fail();
-                response.setResponseObject(false);
-                response.setMessage(e.getMessage());
-                e.printStackTrace();
-                return response;
-            }
-        }
     }
 
     private String postURL(URL url, String postData) throws IOException {
