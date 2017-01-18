@@ -113,6 +113,7 @@ public class JSONParser {
             tmpApp.setEnd(endDate);
             tmpApp.setSubject(c.getString("subject"));
             tmpApp.setVirtual(c.getBoolean("isVirtual"));
+            tmpApp.setMinutes(c.getInt("minutes"));
             //Log.e("RoomX", "parsed base data");
             Person owner = new Person(c.getString("ownerMailbox"), c.getString("ownerName"));
 

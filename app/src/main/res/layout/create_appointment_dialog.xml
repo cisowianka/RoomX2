@@ -1,21 +1,119 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
+    xmlns:circular="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    android:orientation="vertical">
 
-    <TextView
-        android:text="Create appointment"
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/textView" />
+        android:layout_weight="0.21"
+        android:background="@android:color/white">
 
-    <com.nn.roomx.view.seekbar.CustomSeekBar2
+        <TextView
+            android:id="@+id/createAppointmentTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:background="@drawable/create_appointment_title"
+            android:paddingTop="10dp"
+            android:text="@string/create_appointment"
+            android:textColor="@android:color/black"
+            android:textSize="20dp" />
+    </RelativeLayout>
+
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.34"
+        android:background="@android:color/white"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/white"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.6"
+                android:paddingTop="10dp"
+                android:text="start stop"
+                android:textColor="@android:color/black"
+                android:textSize="20dp" />
+
+
+            <com.nn.roomx.view.CircularProgressBar
+                android:id="@+id/actionTimer"
+                style="@style/Widget.ProgressBar.Holo.CircularProgressBar"
+                android:layout_width="285dp"
+                android:layout_height="130dip"
+                circular:cpb_subtitle="seconds"
+                circular:cpb_title="seconds" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="0.5"
+            android:background="@android:color/white"
+            android:orientation="vertical">
+
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="0.5"
+                android:background="@android:color/holo_red_light"
+                android:orientation="horizontal">
+
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:paddingBottom="1dp"
+                    android:text="start"
+                    android:textColor="@android:color/black"
+                    android:textSize="20dp" />
+
+            </LinearLayout>
+
+
+            <com.nn.roomx.view.seekbar.RangeBar xmlns:custom="http://schemas.android.com/apk/res-auto"
+                android:id="@+id/seekBar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:paddingTop="1dp"
+                android:layout_weight="0.5"
+                custom:barWeight="10dp"
+                custom:connectingLineColor="@android:color/holo_green_dark"
+                custom:connectingLineWeight="10dp"
+                custom:pinColor="@android:color/holo_green_light"
+                custom:pinMaxFont="30dp"
+                custom:pinMinFont="30dp"
+                custom:rangeBar="true"
+                custom:selectorColor="@android:color/holo_green_light"
+                custom:selectorSize="10dp"
+                custom:textColor="@android:color/black"
+                custom:tickHeight="10dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/buttonCancelDialog"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/seekBar"
-
-        />
+        android:layout_weight="0.21"
+        android:background="@android:color/holo_green_light"
+        android:text="@string/cancel" />
 
 </LinearLayout>

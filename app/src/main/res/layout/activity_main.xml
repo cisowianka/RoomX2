@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:circular="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:circular="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical">
 
     <LinearLayout
@@ -12,23 +12,42 @@
         android:layout_height="match_parent"
         android:layout_weight=".9"
         android:background="@color/colorPrimary"
-        android:paddingLeft="@dimen/activity_horizontal_margin"
-        android:paddingRight="@dimen/activity_horizontal_margin">
+        android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/roomID"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Room:"
-            android:textColor="#FFFFFF" />
+        <RelativeLayout
+            android:id="@+id/leftHeader"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight=".2"
+            android:background="@color/colorPrimary"
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/roomInformation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingLeft="100dp"
-            android:text=""
-            android:textColor="#FFFFFF" />
+            <TextView
+                android:id="@+id/roomID"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text=""
+                android:textColor="#FFFFFF"
+                android:textSize="20sp" />
+
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/leftRight"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight=".8"
+            android:background="@android:color/black">
+
+            <DigitalClock
+                android:id="@+id/digitalClock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:textSize="20dp" />
+
+        </RelativeLayout>
     </LinearLayout>
 
     <LinearLayout
@@ -54,177 +73,163 @@
                 android:layout_weight=".2"
                 android:orientation="vertical">
 
+                <!-- appointment data -->
                 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
                     xmlns:tools="http://schemas.android.com/tools"
                     android:id="@+id/appointmentContent"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_weight=".2"
+                    android:layout_weight=".3"
                     android:background="@android:color/background_dark"
                     android:orientation="vertical">
 
+
+                    <!-- appointment header -->
                     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
                         xmlns:tools="http://schemas.android.com/tools"
                         android:id="@+id/appointmentHeader"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:layout_weight=".7"
+                        android:layout_weight=".6"
                         android:background="@android:color/holo_orange_light"
-                        android:orientation="horizontal">
+                        android:orientation="vertical">
 
-                        <TextView
-                            android:id="@+id/textView5"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Start time:"
-                            android:textAppearance="?android:attr/textAppearanceMedium" />
+                        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                            xmlns:tools="http://schemas.android.com/tools"
+                            android:id="@+id/appointmentTitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_weight=".3"
+                            android:background="@android:color/holo_blue_bright"
+                            android:orientation="horizontal">
 
-                        <TextView
-                            android:id="@+id/textViewStart"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="------"
-                            android:textAppearance="?android:attr/textAppearanceMedium" />
+                            <TextView
+                                android:id="@+id/appointmnetTitleText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_centerInParent="true"/>
+                        </RelativeLayout>
 
-                        <TextView
-                            android:id="@+id/textView6"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="End time:"
-                            android:textAppearance="?android:attr/textAppearanceMedium" />
+                        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                            xmlns:tools="http://schemas.android.com/tools"
+                            android:id="@+id/appointmentHost"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_weight=".35"
+                            android:background="@android:color/background_dark"
+                            android:orientation="horizontal">
 
-                        <TextView
-                            android:id="@+id/textViewEnd"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="------"
-                            android:textAppearance="?android:attr/textAppearanceMedium" />
+                            <TextView
+                                android:id="@+id/appointmentHostText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Host:" />
+                        </LinearLayout>
 
-                        <TextView
-                            android:id="@+id/textView4"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Host:"
-                            android:textAppearance="?android:attr/textAppearanceMedium" />
+                        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                            xmlns:tools="http://schemas.android.com/tools"
+                            android:id="@+id/appointmentTime"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_weight=".35"
+                            android:background="@android:color/darker_gray"
+                            android:orientation="horizontal">
 
-                        <TextView
-                            android:id="@+id/textViewHost"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="------"
-                            android:textAppearance="?android:attr/textAppearanceMedium" />
+                            <TextView
+                                android:id="@+id/appointmentTimeText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" />
+
+
+                        </LinearLayout>
+
 
                     </LinearLayout>
 
 
-
+                    <!-- timers -->
                     <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
                         xmlns:tools="http://schemas.android.com/tools"
+                        android:id="@+id/timersWrapper"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:layout_weight=".3"
+                        android:layout_weight=".4"
                         android:background="@android:color/holo_blue_bright">
 
 
-                        <com.nn.roomx.view.CircularProgressBar
-                            android:id="@+id/secondsBar"
-                            style="@style/Widget.ProgressBar.Holo.CircularProgressBar"
-                            android:layout_width="130dip"
-                            android:layout_height="130dip"
-                            circular:cpb_subtitle="subtitle"
-                            circular:cpb_title="Seconds"
-                            android:layout_alignTop="@+id/minutesBar"
-                            android:layout_alignParentEnd="true"
-                            android:layout_marginEnd="208dp" />
+                        <TextView
+                            android:id="@+id/timerText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textAlignment="center"
+                            android:textSize="20dp" />
+
 
                         <com.nn.roomx.view.CircularProgressBar
                             android:id="@+id/minutesBar"
                             style="@style/Widget.ProgressBar.Holo.CircularProgressBar"
                             android:layout_width="130dip"
                             android:layout_height="130dip"
-                            android:layout_marginTop="24dp"
+                            android:layout_alignParentBottom="true"
+                            android:layout_marginEnd="121dp"
+                            android:layout_toStartOf="@+id/secondsBar"
                             circular:cpb_subtitle="subtitle"
-                            circular:cpb_title="Minutes"
-                            android:layout_alignParentTop="true"
-                            android:layout_toStartOf="@+id/secondsBar"
-                            android:layout_marginEnd="42dp" />
+                            circular:cpb_title="Minutes" />
 
-
-                        <!--
-                        <ProgressBar
+                        <com.nn.roomx.view.CircularProgressBar
                             android:id="@+id/secondsBar"
-                            style="?android:attr/progressBarStyleHorizontal"
-                            android:layout_width="200dp"
-                            android:layout_height="200dp"
-                            android:progressDrawable="@drawable/timer2"
-                            android:layout_marginStart="153dp"
-                            android:layout_centerVertical="true"
-                            android:layout_toEndOf="@+id/minuteBar" />
+                            style="@style/Widget.ProgressBar.Holo.CircularProgressBar"
+                            android:layout_width="130dip"
+                            android:layout_height="130dip"
+                            android:layout_alignParentBottom="true"
+                            android:layout_alignParentEnd="true"
+                            android:layout_marginEnd="174dp"
+                            circular:cpb_subtitle="subtitle"
+                            circular:cpb_title="Seconds" />
 
-                        <ProgressBar
-                            android:id="@+id/minuteBar"
-                            style="?android:attr/progressBarStyleHorizontal"
-                            android:layout_width="200dp"
-                            android:layout_height="200dp"
-                            android:progressDrawable="@drawable/timer2"
-                            android:layout_marginStart="93dp"
-                            android:layout_alignTop="@+id/secondsBar"
-                            android:layout_alignParentStart="true" />
-
-                        <TextView
-                            android:text="TextView"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_centerVertical="true"
-                            android:layout_toStartOf="@+id/secondsBar"
-                            android:layout_marginEnd="68dp"
-                            android:id="@+id/minutes" />
-
-                        <TextView
-                            android:text="TextView"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_alignBottom="@+id/minutes"
-                            android:layout_alignStart="@+id/secondsBar"
-                            android:layout_marginStart="69dp"
-                            android:id="@+id/seconds" />
--->
 
                     </RelativeLayout>
 
                 </LinearLayout>
 
+                <!-- buttons -->
                 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
                     xmlns:tools="http://schemas.android.com/tools"
                     android:id="@+id/buttonsWrapper"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_weight=".8"
+                    android:layout_weight=".7"
                     android:background="@android:color/holo_purple"
                     android:orientation="horizontal">
 
-                    <Button
-                        android:id="@+id/buttonCancel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="CANCEL" />
-
+                    <!--
                     <Button
                         android:id="@+id/buttonStart"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="invisible"
                         android:text="CONFIRM" />
 
                     <Button
+                        android:id="@+id/buttonCancel"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="invisible"
+                        android:text="CANCEL" />
+
+                    <Button
                         android:id="@+id/buttonFinish"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="FINISH" />
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="invisible"
+                        android:text="Finish" />
 
-
+-->
                 </LinearLayout>
             </LinearLayout>
 
+
+            <!-- time line -->
             <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
                 xmlns:tools="http://schemas.android.com/tools"
                 android:id="@+id/timeLineWrapper"

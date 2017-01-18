@@ -21,9 +21,10 @@ public class Appointment {
     private Person owner;
     private ArrayList<Person> attendees;
     private boolean isConfirmed = false;
-  //  public static ArrayList<Appointment> appointmentsExList = new ArrayList<Appointment>();
+    //  public static ArrayList<Appointment> appointmentsExList = new ArrayList<Appointment>();
     private boolean virtual = false;
     private boolean selected = false;
+    private int minutes;
 
     public Appointment(String ID, String subject, Date start, Date end, Person owner, ArrayList<Person> attendees, boolean confirmed) {
         this.ID = ID;
@@ -189,7 +190,7 @@ public class Appointment {
         Log.i(TAG, getStart() + " ***** " + appCalWarning.getTime() + " @@@@@@ " + new Date());
 
         if (new Date().after(appCalWarning.getTime())) {
-            return (int) ((appCalCancel.getTime().getTime() - new Date().getTime())/ (60 * 1000) % 60) + 1;
+            return (int) ((appCalCancel.getTime().getTime() - new Date().getTime()) / (60 * 1000) % 60) + 1;
         } else {
             return -1;
         }
@@ -201,5 +202,13 @@ public class Appointment {
 
     public boolean isSelected() {
         return selected;
+    }
+
+    public int getMinutes() {
+        return minutes;
+    }
+
+    public void setMinutes(int minutes) {
+        this.minutes = minutes;
     }
 }

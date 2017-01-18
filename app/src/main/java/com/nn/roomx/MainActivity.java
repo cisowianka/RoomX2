@@ -2,13 +2,13 @@ package com.nn.roomx;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Color;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
@@ -17,20 +17,17 @@ import android.nfc.tech.Ndef;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.RotateAnimation;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -40,6 +37,7 @@ import com.nn.roomx.ObjClasses.Appointment;
 import com.nn.roomx.ObjClasses.Event;
 import com.nn.roomx.ObjClasses.Room;
 import com.nn.roomx.ObjClasses.ServiceResponse;
+import com.nn.roomx.view.ViewHelper;
 import com.nn.roomx.view.CircularProgressBar;
 import com.nn.roomx.view.DialogueHelper;
 
@@ -50,8 +48,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -94,12 +90,17 @@ public class MainActivity extends Activity {
     private List<Appointment> appointmentsList = new ArrayList<Appointment>();
     private Appointment currentAppointment = new Appointment();
     private CountDownTimer countDownTimer;
+    private Appointment nextAppointment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(this,
                 MainActivity.class));
+
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
         readSettings();
         checkIfStartedAfterCrush();
@@ -111,11 +112,11 @@ public class MainActivity extends Activity {
 
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.option_menu, menu);
-        return true;
-    }
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        getMenuInflater().inflate(R.menu.option_menu, menu);
+//        return true;
+//    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -340,6 +341,10 @@ public class MainActivity extends Activity {
             if (serverResponse.isOK()) {
                 this.appointmentsList = serverResponse.getResponseObject();
                 this.currentAppointment = appointmentsList.get(0);
+                this.nextAppointment = null;
+                if(appointmentsList.size() > 1){
+                    this.nextAppointment = appointmentsList.get(1);
+                }
                 selectOnTimeLine(0);
                 setAppointmentsView();
                 refreshTimeLine();
@@ -372,13 +377,12 @@ public class MainActivity extends Activity {
 
     private void checkIfAppointmentShouldBeCancelled() {
         Log.i(TAG, "Check if meeting should be cancelled");
-        ((TextView) findViewById(R.id.roomInformation)).setText("");
         if (getCurrentAppointment() != null && !getCurrentAppointment().isVirtual() && !getCurrentAppointment().isConfirmed()) {
             Log.i(TAG, "Auto cancel appointment" + getCurrentAppointment().isConfirmed());
 
             int warningMinutes = getCurrentAppointment().getCancelWarningMinutes(settingsRoomx.getCancelMinuteShift() - 2, settingsRoomx.getCancelMinuteShift());
             if (warningMinutes != -1) {
-                ((TextView) findViewById(R.id.roomInformation)).setText("Appointment will cancelled in " + warningMinutes + " " + " minutes");
+
             }
 
             if (getCurrentAppointment().isAvailableForCancel(settingsRoomx.getCancelMinuteShift())) {
@@ -585,17 +589,33 @@ public class MainActivity extends Activity {
                         }
                     });
 
-            confirmAlert = DialogueHelper.getCreateAppointmnetDialogue(MainActivity.this, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.cancel();
+            //TODO: odkomentowac
+//            confirmAlert = DialogueHelper.getCreateAppointmnetDialogue(MainActivity.this, new DialogInterface.OnClickListener() {
+//                @Override
+//                public void onClick(DialogInterface dialog, int which) {
+//                    dialog.cancel();
+//                    appointmentActionSubscription.unsubscribe();
+//                    enableListenerMode();
+//                    enableAppointmentsListerMode();
+//                }
+//            }, getCurrentAppointment());
+
+            final Dialog createAppointmnetDialogue = DialogueHelper.getCreateAppointmnetDialogue(MainActivity.this, new DialogueHelper.DialogueHelperButtonAction() {
+                //                @Override
+//                public void onClick(DialogInterface dialog, int which) {
+//
+//                }
+                public void action() {
+                 //   createAppointmnetDialogue.cancel();
                     appointmentActionSubscription.unsubscribe();
                     enableListenerMode();
                     enableAppointmentsListerMode();
                 }
-            });
+            }, getCurrentAppointment());
 
-            confirmAlert.show();
+            createAppointmnetDialogue.show();
+
+            // confirmAlert.show();
             Log.i(TAG, "----------create stop  ");
 
         }
@@ -889,14 +909,14 @@ public class MainActivity extends Activity {
         refreshAppointmentsProgress.setCancelable(false); // disable dismiss by tapping outside of the dialog
 
 
-        Button confirmCreateButton = (Button) findViewById(R.id.buttonStart);
-        confirmCreateButton.setOnClickListener(button3confirmListener);
-
-        Button buttonFinish = (Button) findViewById(R.id.buttonFinish);
-        buttonFinish.setOnClickListener(buttonFinishListener);
-
-        Button buttonCancel = (Button) findViewById(R.id.buttonCancel);
-        buttonCancel.setOnClickListener(buttonCancelListener);
+//        Button confirmCreateButton = (Button) findViewById(R.id.buttonStart);
+//        confirmCreateButton.setOnClickListener(button3confirmListener);
+//
+//        Button buttonFinish = (Button) findViewById(R.id.buttonFinish);
+//        buttonFinish.setOnClickListener(buttonFinishListener);
+//
+//        Button buttonCancel = (Button) findViewById(R.id.buttonCancel);
+//        buttonCancel.setOnClickListener(buttonCancelListener);
 
 
     }
@@ -942,61 +962,30 @@ public class MainActivity extends Activity {
     }
 
     private void setAppointmentsView() {
-//        TextView tVsubj = (TextView) findViewById(R.id.textViewTitle);
-//        TextView tVstatus = (TextView) findViewById(R.id.textViewStatus);
-        TextView tVhost = (TextView) findViewById(R.id.textViewHost);
-        TextView tVstart = (TextView) findViewById(R.id.textViewStart);
-        TextView tVend = (TextView) findViewById(R.id.textViewEnd);
-//        TextView tConfirmed = (TextView) findViewById(R.id.confirmedValue);
-//        Button buttonColors = (Button) findViewById(R.id.buttonStatusColor);
-//        buttonColors.setClickable(false);
-
-        Button b1 = (Button) findViewById(R.id.buttonStart);
-        Button b2 = (Button) findViewById(R.id.buttonCancel);
-        Button b3 = (Button) findViewById(R.id.buttonFinish);
-
         Appointment active = getCurrentAppointment();
-        Log.e("SETCURRENTAPP ", "" + active);
-
 
         int diff = (int)(getCurrentAppointment().getEnd().getTime() - new Date().getTime()) / 1000;
 
         startTimers(diff);
 
         if (active.isVirtual()) {
-//            tVsubj.setText("");
-//            tVstatus.setText(R.string.free);
-//            buttonColors.setVisibility(View.VISIBLE);
-//            buttonColors.setBackgroundColor(Color.GREEN);
-            tVhost.setText("");
-            tVstart.setText("");
-            tVend.setText("");
-
-            b1.setText(R.string.create);
-            b1.setVisibility(View.VISIBLE);
-            b2.setVisibility(View.INVISIBLE);
-            b3.setVisibility(View.INVISIBLE);
-            b1.setOnClickListener(buttonCreateListener);
+            ViewHelper.setFreeRoomView(this, buttonCreateListener, nextAppointment);
         } else {
-            SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
-//            buttonColors.setVisibility(View.INVISIBLE);
-//            tVsubj.setText(active.getSubject());
-//            tVstatus.setText(R.string.busy);
-            tVhost.setText(active.getOwner().getName());
-            tVstart.setText(formatter.format(active.getStart()));
-            tVend.setText(formatter.format(active.getEnd()));
-//            tConfirmed.setText(String.valueOf(active.isConfirmed()));
 
-            b1.setText(R.string.start);
-            if (active.isConfirmed()) {
-                b1.setVisibility(View.INVISIBLE);
-            } else {
-                b1.setVisibility(View.VISIBLE);
-            }
+//            tVhost.setText(active.getOwner().getName());
+//            tVstart.setText(formatter.format(active.getStart()));
+//            tVend.setText(formatter.format(active.getEnd()));
 
-            b2.setVisibility(View.VISIBLE);
-            b3.setVisibility(View.VISIBLE);
-            b1.setOnClickListener(button3confirmListener);
+//            b1.setText(R.string.start);
+////            if (active.isConfirmed()) {
+//                b1.setVisibility(View.INVISIBLE);
+////            } else {
+//                //b1.setVisibility(View.VISIBLE);
+////            }
+//
+//            b2.setVisibility(View.VISIBLE);
+//          //  b3.setVisibility(View.VISIBLE);
+//            b1.setOnClickListener(button3confirmListener);
         }
     }
 
