@@ -11,41 +11,65 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_weight=".9"
-        android:background="@color/colorPrimary"
+        android:background="@color/freeRoom"
         android:orientation="horizontal">
 
-        <RelativeLayout
+        <TableLayout
             android:id="@+id/leftHeader"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight=".2"
-            android:background="@color/colorPrimary"
-            android:orientation="horizontal">
+            android:shrinkColumns="*">
 
-            <TextView
-                android:id="@+id/roomID"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:text=""
-                android:textColor="#FFFFFF"
-                android:textSize="20sp" />
 
-        </RelativeLayout>
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+
+                    android:layout_weight="0.3" />
+
+                <TextView
+                    android:id="@+id/roomID"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.3"
+                    android:text=""
+                    android:textColor="#FFFFFF"
+                    android:textSize="40sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/roomStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.5"
+                    android:text=""
+                    android:textAlignment="textEnd"
+                    android:textColor="@android:color/white"
+                    android:textSize="40sp"
+                    android:textStyle="bold" />
+
+            </TableRow>
+        </TableLayout>
 
         <RelativeLayout
             android:id="@+id/leftRight"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight=".8"
-            android:background="@android:color/black">
+            android:layout_weight=".8">
 
             <DigitalClock
                 android:id="@+id/digitalClock"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
-                android:textSize="20dp" />
+                android:textColor="@android:color/white"
+                android:textSize="40sp" />
 
         </RelativeLayout>
     </LinearLayout>
@@ -54,14 +78,14 @@
         android:id="@+id/mainContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight=".1"
-        android:background="@android:color/holo_orange_dark">
+        android:layout_weight=".1">
 
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             xmlns:tools="http://schemas.android.com/tools"
             android:id="@+id/appointmnetAndTimeLineContainer"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="@android:color/white"
             android:orientation="horizontal">
 
 
@@ -70,7 +94,7 @@
                 android:id="@+id/appointmnetWrapper"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_weight=".2"
+                android:layout_weight=".25"
                 android:orientation="vertical">
 
                 <!-- appointment data -->
@@ -80,7 +104,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight=".3"
-                    android:background="@android:color/background_dark"
                     android:orientation="vertical">
 
 
@@ -91,7 +114,6 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:layout_weight=".6"
-                        android:background="@android:color/holo_orange_light"
                         android:orientation="vertical">
 
                         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -100,14 +122,16 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:layout_weight=".3"
-                            android:background="@android:color/holo_blue_bright"
                             android:orientation="horizontal">
 
                             <TextView
                                 android:id="@+id/appointmnetTitleText"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_centerInParent="true"/>
+                                android:layout_centerInParent="true"
+                                android:textSize="30sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/grayTextColor"/>
                         </RelativeLayout>
 
                         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -116,14 +140,27 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:layout_weight=".35"
-                            android:background="@android:color/background_dark"
                             android:orientation="horizontal">
 
                             <TextView
-                                android:id="@+id/appointmentHostText"
-                                android:layout_width="wrap_content"
+                                android:id="@+id/appointmentHostLabel"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Host:" />
+                                android:text="@string/host"
+                                android:layout_weight=".7"
+                                android:layout_marginLeft="5sp"
+                                android:textColor="@color/grayTextColor"
+                                android:textSize="25sp"/>
+
+                            <TextView
+                                android:id="@+id/appointmentHostText"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text=""
+                                android:layout_weight=".3"
+                                android:textSize="25sp"
+                                android:textColor="@color/grayTextColor"
+                                android:textStyle="bold"/>
                         </LinearLayout>
 
                         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -132,13 +169,27 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:layout_weight=".35"
-                            android:background="@android:color/darker_gray"
                             android:orientation="horizontal">
 
                             <TextView
+                                android:id="@+id/appointmentTimeLabel"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/appointment_time"
+                                android:layout_weight=".7"
+                                android:layout_marginLeft="5sp"
+                                android:textColor="@color/grayTextColor"
+                                android:textSize="25sp"/>
+
+                            <TextView
                                 android:id="@+id/appointmentTimeText"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content" />
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text=""
+                                android:layout_weight=".3"
+                                android:textSize="20sp"
+                                android:textColor="@color/grayTextColor"
+                                android:textStyle="bold"/>
 
 
                         </LinearLayout>
@@ -148,13 +199,13 @@
 
 
                     <!-- timers -->
-                    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
                         xmlns:tools="http://schemas.android.com/tools"
                         android:id="@+id/timersWrapper"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:layout_weight=".4"
-                        android:background="@android:color/holo_blue_bright">
+                        android:orientation="vertical">
 
 
                         <TextView
@@ -162,33 +213,50 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:textAlignment="center"
-                            android:textSize="20dp" />
+                            android:textSize="30sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/grayTextColor"/>
 
 
-                        <com.nn.roomx.view.CircularProgressBar
-                            android:id="@+id/minutesBar"
-                            style="@style/Widget.ProgressBar.Holo.CircularProgressBar"
-                            android:layout_width="130dip"
-                            android:layout_height="130dip"
-                            android:layout_alignParentBottom="true"
-                            android:layout_marginEnd="121dp"
-                            android:layout_toStartOf="@+id/secondsBar"
-                            circular:cpb_subtitle="subtitle"
-                            circular:cpb_title="Minutes" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="horizontal"
+                            android:gravity="center_horizontal">
 
-                        <com.nn.roomx.view.CircularProgressBar
-                            android:id="@+id/secondsBar"
-                            style="@style/Widget.ProgressBar.Holo.CircularProgressBar"
-                            android:layout_width="130dip"
-                            android:layout_height="130dip"
-                            android:layout_alignParentBottom="true"
-                            android:layout_alignParentEnd="true"
-                            android:layout_marginEnd="174dp"
-                            circular:cpb_subtitle="subtitle"
-                            circular:cpb_title="Seconds" />
+                            <com.nn.roomx.view.CircularProgressBar
+                                android:id="@+id/hoursBar"
+                                style="@style/Widget.ProgressBar.Holo.CircularProgressBar"
+                                android:layout_width="130dip"
+                                android:layout_height="130dip"
+                                android:layout_alignParentBottom="true"
+                                android:layout_toStartOf="@+id/secondsBar"
+                                circular:cpb_subtitle="subtitle"
+                                circular:cpb_title="Hours" />
+
+                            <com.nn.roomx.view.CircularProgressBar
+                                android:id="@+id/minutesBar"
+                                style="@style/Widget.ProgressBar.Holo.CircularProgressBar"
+                                android:layout_width="130dip"
+                                android:layout_height="130dip"
+                                android:layout_alignParentBottom="true"
+                                android:layout_toStartOf="@+id/secondsBar"
+                                circular:cpb_subtitle="Hours"
+                                circular:cpb_title="12" />
+
+                            <com.nn.roomx.view.CircularProgressBar
+                                android:id="@+id/secondsBar"
+                                style="@style/Widget.ProgressBar.Holo.CircularProgressBarSeconds"
+                                android:layout_width="130dip"
+                                android:layout_height="130dip"
+                                android:layout_alignParentBottom="true"
+                                android:layout_alignParentEnd="true"
+                                circular:cpb_subtitle="subtitle"
+                                circular:cpb_title="Seconds" />
+                        </LinearLayout>
 
 
-                    </RelativeLayout>
+                    </LinearLayout>
 
                 </LinearLayout>
 
@@ -199,16 +267,19 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_weight=".7"
-                    android:background="@android:color/holo_purple"
-                    android:orientation="horizontal">
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingLeft="5sp"
+                    android:paddingRight="5sp">
 
                     <!--
                     <Button
                         android:id="@+id/buttonStart"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:visibility="invisible"
-                        android:text="CONFIRM" />
+                        android:layout_height="wrap_content"
+                        android:text="CONFIRM"
+                        android:background="@color/create_button"/>
+
 
                     <Button
                         android:id="@+id/buttonCancel"
@@ -235,16 +306,17 @@
                 android:id="@+id/timeLineWrapper"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_weight=".8"
-                android:background="@android:color/holo_red_light"
-                android:orientation="horizontal">
+                android:layout_weight=".75"
+                android:orientation="horizontal"
+                android:background="@color/white">
 
                 <ListView
                     android:id="@+id/listView"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_alignParentTop="true"
-                    android:layout_toEndOf="@+id/buttonCancel" />
+                    android:divider="@color/white"
+                    android:background="@color/white"
+                    android:listSelector="@drawable/list_selector"/>
 
 
             </LinearLayout>

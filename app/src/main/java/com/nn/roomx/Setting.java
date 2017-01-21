@@ -95,4 +95,8 @@ public class Setting {
     public void setMonitoriInactiveDialogueSeconds(int monitoriInactiveDialogueSeconds) {
         this.monitoriInactiveDialogueSeconds = monitoriInactiveDialogueSeconds;
     }
+
+    public String getDefaultSubject() {
+        return "RoomXAutoMeeting";
+    }
 }

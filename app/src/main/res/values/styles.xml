@@ -20,14 +20,20 @@
         <item name="cpb_progressColor">@color/circular_progress_default_progress</item>
         <item name="cpb_hasShadow">true</item>
         <item name="cpb_strokeWidth">20</item>
-        <item name="cpb_titleColor">@color/circular_progress_default_title</item>
-        <item name="cpb_subtitleColor">@color/circular_progress_default_subtitle</item>
+        <item name="cpb_titleColor">@color/black</item>
+        <item name="cpb_subtitleColor">@color/black</item>
     </style>
 
     <style name="Widget.ProgressBar.Holo.CircularProgressBar" parent="Widget.ProgressBar.CircularProgressBar">
         <item name="cpb_hasShadow">true</item>
         <item name="cpb_strokeWidth">30</item>
+        <item name="cpb_progressColor">#a0c388</item>
     </style>
 
+    <style name="Widget.ProgressBar.Holo.CircularProgressBarSeconds" parent="Widget.ProgressBar.CircularProgressBar">
+        <item name="cpb_hasShadow">true</item>
+        <item name="cpb_strokeWidth">30</item>
+        <item name="cpb_progressColor">#e8789d</item>
+    </style>
 
 </resources>

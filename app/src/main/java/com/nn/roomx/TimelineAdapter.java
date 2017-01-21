@@ -50,7 +50,6 @@ public class TimelineAdapter extends ArrayAdapter<Appointment> {
         int height = 90;
         if (appointment.getMinutes() > 30) {
             height = height + ((int) ((appointment.getMinutes() - 30) / 1.2));
-
         }
 
         LinearLayout ll = (LinearLayout) rowView;
@@ -58,40 +57,55 @@ public class TimelineAdapter extends ArrayAdapter<Appointment> {
         params.height = height;
         rowView.setLayoutParams(params);
 
-        Log.i(TAG, "Adapter " + appointment.getMinutes());
+        View selectedRowPointer = rowView.findViewById(R.id.selecteRowPointer);
+        selectedRowPointer.setVisibility(View.GONE);
 
-        // rowView.findViewById(R.id.nonVirtualWrapper).setVisibility(View.INVISIBLE);
-        // rowView.findViewById(R.id.virtualWrapper).setVisibility(View.INVISIBLE);
+        View appointmentStub = rowView.findViewById(R.id.appointmentStub);
 
         if (appointment.isVirtual()) {
              rowView.findViewById(R.id.nonVirtualWrapper).setVisibility(View.GONE);
-            // rowView.findViewById(R.id.nonVirtualWrapper).setVisibility(View.GONE);
-
-            // ll.removeView(rowView.findViewById(R.id.nonVirtualWrapper));
-            rowView.setBackgroundColor(context.getResources().getColor(android.R.color.darker_gray));
+            appointmentStub.setBackgroundColor(context.getResources().getColor(R.color.timeline_gray));
         } else {
             rowView.findViewById(R.id.virtualWrapper).setVisibility(View.GONE);
 
-            String desc = "";
-            SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
             long appointmentTimeLong = appointment.getEnd().getTime() - appointment.getStart().getTime();
             Date appointemntTimeDate = new Date();
             appointemntTimeDate.setTime(appointmentTimeLong);
-            desc = formatter.format(appointment.getStart());
 
             TextView startView = (TextView) rowView.findViewById(R.id.appointmentStart);
-            startView.setText(desc);
+            startView.setText(RoomxUtils.formatHour(appointment.getStart()));
 
-            TextView appointmnetTimeView = (TextView) rowView.findViewById(R.id.appointmnetTime);
-            appointmnetTimeView.setText(formatter.format(appointemntTimeDate));
+            TextView appointmentEnd = (TextView) rowView.findViewById(R.id.appointmentEnd);
+            appointmentEnd.setText(RoomxUtils.formatHour(appointment.getEnd()));
 
-            TextView hostView = (TextView) rowView.findViewById(R.id.appointmnetHost);
+            TextView hostView = (TextView) rowView.findViewById(R.id.appointmentHost);
             hostView.setText(appointment.getOwner().getName());
+
+            TextView hostLabel = (TextView) rowView.findViewById(R.id.appointmentHostLabel);
+
+            if(appointment.isSelected()){
+                hostView.setTextColor(context.getResources().getColor(R.color.white));
+                appointmentEnd.setTextColor(context.getResources().getColor(R.color.white));
+                startView.setTextColor(context.getResources().getColor(R.color.white));
+                hostLabel.setTextColor(context.getResources().getColor(R.color.white));
+            }else{
+                hostView.setTextColor(context.getResources().getColor(R.color.black));
+                appointmentEnd.setTextColor(context.getResources().getColor(R.color.black));
+                startView.setTextColor(context.getResources().getColor(R.color.black));
+                hostLabel.setTextColor(context.getResources().getColor(R.color.black));
+            }
         }
 
 
         if (appointment.isSelected()) {
-            rowView.setBackgroundColor(context.getResources().getColor(android.R.color.holo_green_dark));
+            selectedRowPointer.setVisibility(View.VISIBLE);
+            if(appointment.isVirtual()){
+                selectedRowPointer.setBackground(context.getResources().getDrawable(R.drawable.virtual_appointment_selected_time_line_row));
+                appointmentStub.setBackgroundColor(context.getResources().getColor(R.color.timeline_gray));
+            }else{
+                appointmentStub.setBackgroundColor(context.getResources().getColor(R.color.orange));
+                selectedRowPointer.setBackground(context.getResources().getDrawable(R.drawable.appointment_selected_time_line_row));
+            }
         }
 
         return rowView;

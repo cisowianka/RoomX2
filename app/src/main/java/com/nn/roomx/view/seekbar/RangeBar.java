@@ -327,16 +327,18 @@ public class RangeBar extends View {
             mLeftThumb.setFormatter(mFormatter);
             mLeftThumb.init(ctx, yPos, expandedPinRadius, mPinColor, mTextColor, mCircleSize,
                     mCircleColor, mMinPinFont, mMaxPinFont, mArePinsTemporary);
+            mLeftThumb.setIsRight(false);
         }
         mRightThumb = new PinView(ctx);
         mRightThumb.setFormatter(mFormatter);
         mRightThumb.init(ctx, yPos, expandedPinRadius, mPinColor, mTextColor, mCircleSize,
                 mCircleColor, mMinPinFont, mMaxPinFont, mArePinsTemporary);
+        mRightThumb.setIsRight(true);
 
         // Create the underlying bar.
         final float marginLeft = Math.max(mExpandedPinRadius, mCircleSize);
 
-        final float barLength = w - (2 * marginLeft);
+        final float barLength = (w - (2 * marginLeft));
         mBar = new Bar(ctx, marginLeft, yPos, barLength, mTickCount, mTickHeightDP, mTickColor,
                 mBarWeight, mBarColor);
 
@@ -344,9 +346,11 @@ public class RangeBar extends View {
         if (mIsRangeBar) {
             mLeftThumb.setX(marginLeft + (mLeftIndex / (float) (mTickCount - 1)) * barLength);
             mLeftThumb.setXValue(getPinValue(mLeftIndex));
+            mLeftThumb.setIsRight(false);
         }
         mRightThumb.setX(marginLeft + (mRightIndex / (float) (mTickCount - 1)) * barLength);
         mRightThumb.setXValue(getPinValue(mRightIndex));
+        mRightThumb.setIsRight(true);
 
         // Set the thumb indices.
         final int newLeftIndex = mIsRangeBar ? mBar.getNearestTickIndex(mLeftThumb) : 0;
@@ -378,6 +382,7 @@ public class RangeBar extends View {
                 mBar.drawTicks(canvas);
             }
             mLeftThumb.draw(canvas);
+            mLeftThumb.setIsRight(false);
         } else {
             mConnectingLine.draw(canvas, getMarginLeft(), mRightThumb);
             if (drawTicks) {
@@ -1135,6 +1140,7 @@ public class RangeBar extends View {
         }
         mRightThumb.setX(marginLeft + (mRightIndex / (float) (mTickCount - 1)) * barLength);
         mRightThumb.setXValue(getPinValue(mRightIndex));
+        mRightThumb.setIsRight(true);
 
         invalidate();
     }
@@ -1318,6 +1324,7 @@ public class RangeBar extends View {
                 mLeftThumb.setXValue(getPinValue(mLeftIndex));
             }
             mRightThumb.setXValue(getPinValue(mRightIndex));
+            mRightThumb.setIsRight(true);
 
             if (mListener != null) {
                 mListener.onRangeChangeListener(this, mLeftIndex, mRightIndex,
@@ -1366,6 +1373,7 @@ public class RangeBar extends View {
         thumb.setX(nearestTickX);
         int tickIndex = mBar.getNearestTickIndex(thumb);
         thumb.setXValue(getPinValue(tickIndex));
+        mRightThumb.setIsRight(true);
 
         if (mArePinsTemporary) {
             ValueAnimator animator = ValueAnimator.ofFloat(mExpandedPinRadius, 0);
@@ -1409,6 +1417,15 @@ public class RangeBar extends View {
             }
         }
         return mPinTextFormatter.getText(xValue);
+    }
+
+    private int getPinIndex(int left, int tickIndex){
+
+        tickIndex = tickIndex + left;
+
+
+        Log.i("ROOMXXX", tickIndex + " ->>>>>>>>>>>> " + tickIndex);
+        return (int) ( tickIndex);
     }
 
     /**

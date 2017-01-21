@@ -8,6 +8,7 @@ import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 
@@ -80,6 +81,8 @@ class PinView extends View {
     private boolean mPinsAreTemporary;
 
     private boolean mHasBeenPressed = false;
+    private boolean isRight;
+
 
     // Constructors ////////////////////////////////////////////////////////////
 
@@ -270,13 +273,25 @@ class PinView extends View {
 //                    mTextPaint);
 //        }
 
+
         String text = mValue;
         if (this.formatter != null) {
             text = formatter.format(text);
         }
-        canvas.drawText(text,
-                mX, mY - 30,
-                mTextPaint);
+
+        calibrateTextSize(mTextPaint, text, mBounds.width());
+        Log.i("ROOMX", text + " " +  isRight);
+
+        if(isRight){
+            canvas.drawText(text,
+                    mX - 100, mY - 30,
+                    mTextPaint);
+        }else{
+            canvas.drawText(text,
+                    mX , mY - 30,
+                    mTextPaint);
+        }
+
         super.draw(canvas);
     }
 
@@ -296,4 +311,9 @@ class PinView extends View {
         }
         paint.setTextSize(estimatedFontSize * mDensity);
     }
+
+    public void setIsRight(boolean right){
+        this.isRight = right;
+    }
+
 }

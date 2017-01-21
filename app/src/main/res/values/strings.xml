@@ -13,9 +13,16 @@
     <string name="selectRoom">Select room</string>
     <string name="wrong_admin_password">Wrong admin password</string>
     <string name="ok">OK</string>
-    <string name="Book">ZAREZERWUJ TERAZ</string>
+    <string name="Book">Zarezerwuj teraz</string>
+    <string name="create_appointmnet_title">SZYBKA REZERWACJA</string>
     <string name="next_appointment_will_start_in">NASTĘPNE SPOTKANIE ROZPOCZNIE SIĘ ZA:</string>
+    <string name="room_is_free_for">Salka jest wolna przez:</string>
+    <string name="appointment_ends_in">Spotaknie kończy się za:</string>
     <string name="room_is_available_for_booking">TA SALKA CZEKA NA TWOJĄ REZERWACJĘ</string>
-    <string name="room_is_free_to">SALKA JEST WOLNA DO: </string>
-    <string name="create_appointment">FAST BOOKING. USTAL PLANOWANE GODZINY POCZĄTKU I KOŃCA SPOTKANIA. ABY DOKONAĆ REZERWACJI ZBLIŻ KARTĘ DO CZYTNIKA NFC.</string>
+    <string name="appointment_in_progress">TRWA SPOTKANIE</string>
+    <string name="room_is_free_to">wolna do </string>
+    <string name="room_is_busy_to">zajęta do </string>
+    <string name="create_appointment">Wybierz oczekiwane godziny spotkaniai potwierdź zbliżając swoją kartę do czytnika NFC znajdującego się po lewej stronie.</string>
+    <string name="host">organizator:</string>
+    <string name="appointment_time">czas spotkania:</string>
 </resources>

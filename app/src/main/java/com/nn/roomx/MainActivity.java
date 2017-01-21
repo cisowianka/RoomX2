@@ -37,6 +37,7 @@ import com.nn.roomx.ObjClasses.Appointment;
 import com.nn.roomx.ObjClasses.Event;
 import com.nn.roomx.ObjClasses.Room;
 import com.nn.roomx.ObjClasses.ServiceResponse;
+import com.nn.roomx.view.CreateAppointmentDialog;
 import com.nn.roomx.view.ViewHelper;
 import com.nn.roomx.view.CircularProgressBar;
 import com.nn.roomx.view.DialogueHelper;
@@ -79,7 +80,6 @@ public class MainActivity extends Activity {
     private ProgressDialog progress = null;
     private ProgressDialog refreshAppointmentsProgress = null;
 
-    private EditText input;
     private AlertDialog confirmAlert;
 
     private NfcAdapter mNfcAdapter;
@@ -342,7 +342,7 @@ public class MainActivity extends Activity {
                 this.appointmentsList = serverResponse.getResponseObject();
                 this.currentAppointment = appointmentsList.get(0);
                 this.nextAppointment = null;
-                if(appointmentsList.size() > 1){
+                if (appointmentsList.size() > 1) {
                     this.nextAppointment = appointmentsList.get(1);
                 }
                 selectOnTimeLine(0);
@@ -516,6 +516,7 @@ public class MainActivity extends Activity {
         startActivity(i);
     }
 
+    private CreateAppointmentDialog createAppointmnetDialogue;
     private View.OnClickListener buttonCreateListener = new View.OnClickListener() {
 
         @Override
@@ -533,20 +534,9 @@ public class MainActivity extends Activity {
                         @Override
                         public void call(String nfcEvent) {
                             progress.show();
-                            Toast.makeText(getApplicationContext(), getResources().getString(R.string.msg_from_nfc) + " "
-                                    + nfcEvent, Toast.LENGTH_SHORT).show();
-                            Log.i(TAG, "nfcEvents ----------observable events  " + nfcEvent);
-                            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                            Date d = new Date();
-                            Calendar c = Calendar.getInstance();
-                            c.setTime(new Date());
-                            c.set(Calendar.SECOND, 0);
-                            c.set(Calendar.MILLISECOND, 0);
+                            createAppointmnetDialogue.confirmActionPerformed();
 
-                            c.add(Calendar.MINUTE, -2);
-                            Date now = c.getTime();
-                            c.add(Calendar.MINUTE, 30);
-                            Observable.concat(dataExchange.getCreateAppointmentObservable(nfcEvent, getRoomId(), input.getText().toString(), now, c.getTime()),
+                            Observable.concat(dataExchange.getCreateAppointmentObservable(nfcEvent, getRoomId(), settingsRoomx.getDefaultSubject(), createAppointmnetDialogue.getStart(), createAppointmnetDialogue.getEnd()),
                                     Observable.timer(10, TimeUnit.SECONDS),
                                     dataExchange.getAppointmentsForRoomObservable(getRoomId()))
                                     .subscribeOn(Schedulers.newThread())
@@ -569,7 +559,7 @@ public class MainActivity extends Activity {
                                             new Action1<Throwable>() {
                                                 public void call(Throwable e) {
                                                     progress.dismiss();
-                                                    confirmAlert.dismiss();
+                                                    hideConfirmAlert();
                                                     enableListenerMode();
                                                     enableAppointmentsListerMode();
                                                     disableMonitorInactiveDialogue();
@@ -581,7 +571,7 @@ public class MainActivity extends Activity {
 
                         public void call(Throwable e) {
                             progress.dismiss();
-                            confirmAlert.dismiss();
+                            hideConfirmAlert();
                             handleTechnicalError(e.getMessage(), e);
                             enableListenerMode();
                             enableAppointmentsListerMode();
@@ -600,13 +590,8 @@ public class MainActivity extends Activity {
 //                }
 //            }, getCurrentAppointment());
 
-            final Dialog createAppointmnetDialogue = DialogueHelper.getCreateAppointmnetDialogue(MainActivity.this, new DialogueHelper.DialogueHelperButtonAction() {
-                //                @Override
-//                public void onClick(DialogInterface dialog, int which) {
-//
-//                }
+            createAppointmnetDialogue = DialogueHelper.getCreateAppointmnetDialogue(MainActivity.this, new DialogueHelper.DialogueHelperButtonAction() {
                 public void action() {
-                 //   createAppointmnetDialogue.cancel();
                     appointmentActionSubscription.unsubscribe();
                     enableListenerMode();
                     enableAppointmentsListerMode();
@@ -621,8 +606,19 @@ public class MainActivity extends Activity {
         }
     };
 
+    private void hideConfirmAlert() {
+        //confirmAlert.dismiss();
+        if (createAppointmnetDialogue != null) {
+            createAppointmnetDialogue.dismiss();
+        }
+    }
+
     private void cancelConfirmAlert() {
-        confirmAlert.cancel();
+        //TODO:
+        // confirmAlert.cancel();
+        if(createAppointmnetDialogue != null){
+            createAppointmnetDialogue.dismiss();
+        }
         appointmentActionSubscription.unsubscribe();
         enableListenerMode();
         enableAppointmentsListerMode();
@@ -908,17 +904,6 @@ public class MainActivity extends Activity {
         refreshAppointmentsProgress.setMessage("Data synchronization");
         refreshAppointmentsProgress.setCancelable(false); // disable dismiss by tapping outside of the dialog
 
-
-//        Button confirmCreateButton = (Button) findViewById(R.id.buttonStart);
-//        confirmCreateButton.setOnClickListener(button3confirmListener);
-//
-//        Button buttonFinish = (Button) findViewById(R.id.buttonFinish);
-//        buttonFinish.setOnClickListener(buttonFinishListener);
-//
-//        Button buttonCancel = (Button) findViewById(R.id.buttonCancel);
-//        buttonCancel.setOnClickListener(buttonCancelListener);
-
-
     }
 
     private void refreshTimeLine() {
@@ -930,6 +915,7 @@ public class MainActivity extends Activity {
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                view.setBackgroundColor(getResources().getColor(R.color.white));
                 selectOnTimeLine(position);
                 setAppointmentsView();
                 refreshTimeLine();
@@ -964,13 +950,14 @@ public class MainActivity extends Activity {
     private void setAppointmentsView() {
         Appointment active = getCurrentAppointment();
 
-        int diff = (int)(getCurrentAppointment().getEnd().getTime() - new Date().getTime()) / 1000;
+        int diff = (int) (getCurrentAppointment().getEnd().getTime() - new Date().getTime()) / 1000;
 
         startTimers(diff);
 
         if (active.isVirtual()) {
             ViewHelper.setFreeRoomView(this, buttonCreateListener, nextAppointment);
         } else {
+            ViewHelper.setBusyRoomView(this, active);
 
 //            tVhost.setText(active.getOwner().getName());
 //            tVstart.setText(formatter.format(active.getStart()));
@@ -1000,31 +987,37 @@ public class MainActivity extends Activity {
 
     private void startTimers(final int secondsInit) {
 
-        if(countDownTimer != null){
+        if (countDownTimer != null) {
             countDownTimer.cancel();
         }
 
         final CircularProgressBar secondsTimer = (CircularProgressBar) findViewById(R.id.secondsBar);
         final CircularProgressBar minutesTimer = (CircularProgressBar) findViewById(R.id.minutesBar);
+        final CircularProgressBar hoursTimer = (CircularProgressBar) findViewById(R.id.hoursBar);
 
         countDownTimer = new CountDownTimer(secondsInit * 1000, 500) {
             @Override
             public void onTick(long leftTimeInMilliseconds) {
                 long seconds = leftTimeInMilliseconds / 1000;
                 long minutes = seconds / 60;
+                long hours = minutes / 60;
+
                 int percentageSeconds = (int) seconds % 60 * 100 / 60;
-                int percentageMinutes = (int) seconds / 60 * 100 / 60;
+                int percentageMinutes = (int) minutes % 60 * 100 / 60;
+                int percentageHours = (int) hours * 100 / 24;
+
+
                 secondsTimer.setProgress(percentageSeconds);
                 secondsTimer.setTitle(String.format("%02d", seconds % 60));
                 secondsTimer.setSubTitle("Sek");
 
                 minutesTimer.setProgress(percentageMinutes);
-                minutesTimer.setTitle(String.format("%02d", seconds / 60));
+                minutesTimer.setTitle(String.format("%02d", minutes % 60));
                 minutesTimer.setSubTitle("Min");
-           //     Log.i(TAG, leftTimeInMilliseconds + " Timcer " + seconds + " " +  percentageSeconds + " " + percentageMinutes);
-//                secondsText.setText(String.format("%02d", seconds % 60));
-//                minutesText.setText(String.format("%02d", seconds / 60));
 
+                hoursTimer.setProgress(percentageHours);
+                hoursTimer.setTitle(String.format("%02d", hours % 24));
+                hoursTimer.setSubTitle("Godz.");
             }
 
             @Override
@@ -1042,6 +1035,12 @@ public class MainActivity extends Activity {
 
     public Appointment getCurrentAppointment() {
         return this.currentAppointment;
+    }
+
+
+    //TODO: remove after tests
+    public void nfcFakeSignal() {
+        nfcEvents.onNext("piotr1@sobotka.info");
     }
 
     private class NdefReaderTask extends AsyncTask<Tag, Void, String> {

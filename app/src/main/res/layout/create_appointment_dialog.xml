@@ -7,113 +7,272 @@
     android:background="@android:color/white"
     android:orientation="vertical">
 
-    <RelativeLayout
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="0.21"
-        android:background="@android:color/white">
+        android:layout_height="match_parent"
+        android:layout_weight="0.43"
+        android:background="@android:color/white"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
 
         <TextView
-            android:id="@+id/createAppointmentTitle"
+            android:id="@+id/dummyConfirmReservation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/create_appointmnet_title"
+            android:textColor="@color/orange"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:background="@drawable/create_appointment_title"
+            android:layout_marginLeft="10sp"
+            android:layout_marginRight="10sp"
             android:paddingTop="10dp"
             android:text="@string/create_appointment"
-            android:textColor="@android:color/black"
+            android:textColor="@color/grayTextColor"
             android:textSize="20dp" />
-    </RelativeLayout>
+
+    </LinearLayout>
 
 
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_weight="0.34"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="0.22"
         android:background="@android:color/white"
         android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@android:color/white"
+            android:layout_height="match_parent"
+            android:layout_weight="0.4"
             android:orientation="horizontal">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.6"
-                android:paddingTop="10dp"
-                android:text="start stop"
-                android:textColor="@android:color/black"
-                android:textSize="20dp" />
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="horizontal">
 
 
-            <com.nn.roomx.view.CircularProgressBar
-                android:id="@+id/actionTimer"
-                style="@style/Widget.ProgressBar.Holo.CircularProgressBar"
-                android:layout_width="285dp"
-                android:layout_height="130dip"
-                circular:cpb_subtitle="seconds"
-                circular:cpb_title="seconds" />
+                <GridLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.3"
+                    android:useDefaultMargins="true">
 
+
+                </GridLayout>
+
+                <TableLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.2"
+                    android:background="@android:color/white"
+                    android:shrinkColumns="*">
+
+                    <TableRow
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:minHeight="5sp"
+                        android:padding="5dip"></TableRow>
+
+                    <TableRow
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_span="2"
+                        android:minHeight="40sp"
+                        android:padding="2sp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_weight="1"
+                            android:text="początek"
+                            android:textAlignment="center"
+                            android:textColor="@color/grayTextColor"
+                            android:textSize="25sp"
+                            android:textStyle="bold"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_weight="0"
+                            android:text=""
+                            android:textAlignment="center"
+                            android:textSize="35sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"/>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_weight="1"
+                            android:text="koniec"
+                            android:textAlignment="center"
+                            android:textColor="@color/grayTextColor"
+                            android:textSize="25sp"
+                            android:textStyle="bold"/>
+                    </TableRow>
+
+                    <TableRow
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="40sp">
+
+                        <TextView
+                            android:id="@+id/appointmentStartText"
+                            android:layout_width="match_parent"
+                            android:layout_weight="1"
+                            android:text="początek"
+                            android:textAlignment="center"
+                            android:textSize="35sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"/>
+
+                        <TextView
+                            android:id="@+id/textView"
+                            android:layout_width="wrap_content"
+                            android:layout_weight="0"
+                            android:text="-"
+                            android:textAlignment="center"
+                            android:textSize="35sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"/>
+
+                        <TextView
+                            android:id="@+id/appointmentEndText"
+                            android:layout_width="match_parent"
+                            android:layout_weight="1"
+                            android:text="koniec"
+                            android:textAlignment="center"
+                            android:textSize="35sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"/>
+                    </TableRow>
+
+                    <TableRow
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:minHeight="2sp"
+                        android:padding="5dip"></TableRow>
+
+                    <TableRow
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_weight="1"
+                            android:text="czas trwania"
+                            android:textAlignment="center"
+                            android:textColor="@color/grayTextColor"
+                            android:textSize="25sp"/>
+
+                    </TableRow>
+
+                    <TableRow
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="40sp">
+
+                        <TextView
+                            android:id="@+id/appointmentRange"
+                            android:layout_width="wrap_content"
+                            android:layout_weight="1"
+                            android:text="czas trwania"
+                            android:textAlignment="center"
+                            android:textColor="@color/black"
+                            android:textSize="35sp"/>
+
+                    </TableRow>
+
+                </TableLayout>
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.3"
+                    android:useDefaultMargins="true"></GridLayout>
+            </LinearLayout>
+
+            <!--
+            <GridLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="0.75"
+                android:columnCount="1"
+                android:rowCount="1">
+
+                <com.nn.roomx.view.CircularProgressBar
+                    android:id="@+id/actionTimer"
+                    style="@style/Widget.ProgressBar.Holo.CircularProgressBar"
+                    android:layout_width="150dp"
+                    android:layout_height="match_parent"
+
+                    circular:cpb_subtitle="seconds"
+                    circular:cpb_title="seconds" />
+            </GridLayout>
+-->
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="0.5"
-            android:background="@android:color/white"
+            android:layout_weight="0.7"
             android:orientation="vertical">
-
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_weight="0.5"
-                android:background="@android:color/holo_red_light"
-                android:orientation="horizontal">
-
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:paddingBottom="1dp"
-                    android:text="start"
-                    android:textColor="@android:color/black"
-                    android:textSize="20dp" />
-
-            </LinearLayout>
-
 
             <com.nn.roomx.view.seekbar.RangeBar xmlns:custom="http://schemas.android.com/apk/res-auto"
                 android:id="@+id/seekBar"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"
                 android:layout_marginRight="10dp"
-                android:paddingTop="1dp"
-                android:layout_weight="0.5"
-                custom:barWeight="10dp"
-                custom:connectingLineColor="@android:color/holo_green_dark"
-                custom:connectingLineWeight="10dp"
-                custom:pinColor="@android:color/holo_green_light"
-                custom:pinMaxFont="30dp"
-                custom:pinMinFont="30dp"
+                custom:barWeight="10sp"
+                custom:connectingLineColor="@color/range_bar"
+                custom:connectingLineWeight="10sp"
+                custom:pinColor="@color/range_bar"
+                custom:pinMaxFont="20sp"
+                custom:pinMinFont="20sp"
                 custom:rangeBar="true"
-                custom:selectorColor="@android:color/holo_green_light"
-                custom:selectorSize="10dp"
-                custom:textColor="@android:color/black"
-                custom:tickHeight="10dp" />
+                custom:selectorColor="@color/range_bar"
+                custom:selectorSize="20sp"
+                custom:textColor="@color/range_bar"
+                custom:tickHeight="10sp"
+                custom:tickColor="@color/range_bar"/>
         </LinearLayout>
     </LinearLayout>
 
-    <Button
-        android:id="@+id/buttonCancelDialog"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="0.21"
-        android:background="@android:color/holo_green_light"
-        android:text="@string/cancel" />
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="0.45"
+        android:background="@android:color/white"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/buttonCancelDialog"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="0.2"
+            android:clickable="true"
+            android:text="@string/cancel"
+            android:background="@color/white"
+            android:textColor="@color/create_button"
+            android:textSize="40sp"/>
+
+        <ProgressBar
+            android:id="@+id/timerProgressBar"
+            style="@android:style/Widget.Holo.Light.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:indeterminate="false"
+            android:layout_height="match_parent"
+            android:layout_weight="0.8"
+            android:progressDrawable="@drawable/progress_bar_confirm_action"
+            android:layout_margin="2sp"
+            />
+
+    </LinearLayout>
 </LinearLayout>
