@@ -14,6 +14,10 @@ public class Person {
         this.fullNname = name;
     }
 
+    public Person() {
+
+    }
+
     public String getID() {
         return ID;
     }

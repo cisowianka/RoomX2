@@ -6,6 +6,7 @@ import com.nn.roomx.ObjClasses.Appointment;
 import com.nn.roomx.ObjClasses.Event;
 import com.nn.roomx.ObjClasses.Person;
 import com.nn.roomx.ObjClasses.Room;
+import com.nn.roomx.ObjClasses.ServiceResponse;
 import com.nn.roomx.ObjClasses.SystemProperty;
 
 import org.json.JSONArray;
@@ -139,4 +140,16 @@ public class JSONParser {
     }
 
 
+    public ServiceResponse parseBaseResponse(String respString) throws JSONException {
+        ServiceResponse result = new ServiceResponse();
+
+        JSONObject reader = new JSONObject(respString);
+        String status = reader.getString("status");
+        String message = reader.getString("message");
+
+        result.setStatus(status);
+        result.setMessage(message);
+
+        return result;
+    }
 }

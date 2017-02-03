@@ -8,6 +8,10 @@ import java.util.List;
 
 public class ServiceResponse<V> {
 
+    public void setStatus(String status) {
+        this.status = Status.valueOf(status);
+    }
+
     private enum Status {
         OK,
         FAIL

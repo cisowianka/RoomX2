@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Point;
 import android.os.CountDownTimer;
 import android.view.Display;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
@@ -13,6 +14,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.nn.roomx.MainActivity;
 import com.nn.roomx.ObjClasses.Appointment;
@@ -41,12 +43,15 @@ public class CreateAppointmentDialog extends Dialog {
 
     private CountDownTimer countDownTimer;
 
+    private String enteredUserId = "";
+
     public CreateAppointmentDialog(MainActivity context, Appointment currentAppointment, DialogueHelper.DialogueHelperButtonAction cancelActioin) {
         super(context);
         this.activity = context;
         this.currentAppointment = currentAppointment;
         this.cancelActioin = cancelActioin;
     }
+
 
     public void init(){
 
@@ -68,7 +73,6 @@ public class CreateAppointmentDialog extends Dialog {
             public void onTick(long leftTimeInMilliseconds) {
                 long seconds = leftTimeInMilliseconds / 1000;
                 int percentageSeconds = (int) seconds % 60 * 100 / 60;
-                percentageSeconds = 100 - percentageSeconds;
                 actionTimer.setProgress(percentageSeconds);
             }
 
@@ -94,6 +98,9 @@ public class CreateAppointmentDialog extends Dialog {
                 return RoomxUtils.getMinuteHourFormatFromMinutes(currentAppointment.getStart(), value);
             }
         });
+
+        setStart(RoomxUtils.getDateFromStartPlusShift(currentAppointment.getStart(), seekBar.getLeftPinValue()));
+        setEnd(RoomxUtils.getDateFromStartPlusShift(currentAppointment.getStart(), seekBar.getRightPinValue()));
 
         seekBar.setOnRangeBarChangeListener(new RangeBar.OnRangeBarChangeListener() {
             @Override
@@ -143,6 +150,32 @@ public class CreateAppointmentDialog extends Dialog {
         appointmentEnd.setText(RoomxUtils.getMinuteHourFormatFromMinutes(currentAppointment.getStart(), seekBar.getRightPinValue()));
         appointmentRange.setText(RoomxUtils.getMinuteHourFormatFromStringMinutes(seekBar.getRightPinValue(), seekBar.getLeftPinValue()));
 
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+
+
+        try
+        {
+            //
+            if(event.getAction()== KeyEvent.ACTION_UP)
+            {
+
+                if(KeyEvent.KEYCODE_ENTER == event.getKeyCode()){
+                    Toast.makeText(activity, "Clicked ENTER " + enteredUserId, Toast.LENGTH_SHORT).show();
+                    activity.putEvent(enteredUserId.replace(" ", "") + "@sobotka.info");
+                    enteredUserId= "";
+                }
+                enteredUserId += (char)event.getUnicodeChar();
+            }
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+        }
+
+        return true;
     }
 
     public Date getStart() {

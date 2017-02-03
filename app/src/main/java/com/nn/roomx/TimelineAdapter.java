@@ -88,11 +88,13 @@ public class TimelineAdapter extends ArrayAdapter<Appointment> {
                 appointmentEnd.setTextColor(context.getResources().getColor(R.color.white));
                 startView.setTextColor(context.getResources().getColor(R.color.white));
                 hostLabel.setTextColor(context.getResources().getColor(R.color.white));
+                appointmentStub.setBackground(context.getResources().getDrawable(R.drawable.all_borders_timeline_slot));
             }else{
                 hostView.setTextColor(context.getResources().getColor(R.color.black));
                 appointmentEnd.setTextColor(context.getResources().getColor(R.color.black));
                 startView.setTextColor(context.getResources().getColor(R.color.black));
                 hostLabel.setTextColor(context.getResources().getColor(R.color.black));
+                appointmentStub.setBackground(context.getResources().getDrawable(R.drawable.all_borders_timeline_slot));
             }
         }
 

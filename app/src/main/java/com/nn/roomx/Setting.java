@@ -18,7 +18,7 @@ public class Setting {
 
     private static final String NO_ROOM = "NO_ROOM";
     private static final int APPOINTMENT_CHECK_INTERVAL_SECONDS_DEFAULT = 15;
-    private static final int APPOINTMENT_CANCEL_MINUTE_SHIFT = 15;
+    private static final int APPOINTMENT_CANCEL_MINUTE_SHIFT = 65;
 
     private String roomId;
     private String password = "a";
@@ -26,6 +26,7 @@ public class Setting {
     private long appointmentRefershIntervalSeconds = APPOINTMENT_CHECK_INTERVAL_SECONDS_DEFAULT;
     private int cancelMinuteShift = APPOINTMENT_CANCEL_MINUTE_SHIFT;
     private int monitoriInactiveDialogueSeconds = 60;
+    private String serverAddress = "http://192.168.100.102:8080";
 
     public Setting(SharedPreferences sharedPreferences) {
         this.sharedPreferences = sharedPreferences;
@@ -98,5 +99,9 @@ public class Setting {
 
     public String getDefaultSubject() {
         return "RoomXAutoMeeting";
+    }
+
+    public String getServerAddress() {
+        return serverAddress;
     }
 }

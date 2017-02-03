@@ -53,22 +53,27 @@ public class ViewHelper {
 
         Button button = new Button(ctx);
         button.setText(R.string.Book);
-        LinearLayout.LayoutParams layoutParams = new  LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        LinearLayout.LayoutParams layoutParams = new  LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        layoutParams.weight = 0.5f;
+
+        TextView textViewDummy = new TextView(ctx);
+        textViewDummy.setLayoutParams(layoutParams);
+
         button.setLayoutParams(layoutParams);
         button.setTextSize(50);
         button.setBackgroundColor(ctx.getResources().getColor(R.color.create_button));
-        button.setMinHeight(50);
-
 
         button.setOnClickListener(buttonCreateListener);
 
         LinearLayout wrapper = (LinearLayout) ctx.findViewById(R.id.buttonsWrapper);
         wrapper.removeAllViews();
+        wrapper.addView(textViewDummy);
         wrapper.addView(button);
+
     }
 
 
-    public static void setBusyRoomView(MainActivity ctx, Appointment currentAppointment) {
+    public static void setBusyRoomView(MainActivity ctx, View.OnClickListener buttonReleaseListener, Appointment currentAppointment) {
         View roomHeader = ctx.findViewById(R.id.header);
         TextView tVhost = (TextView) ctx.findViewById(R.id.appointmentHostText);
         TextView hostLabel = (TextView) ctx.findViewById(R.id.appointmentHostLabel);
@@ -90,5 +95,25 @@ public class ViewHelper {
 
         appointmentTimeLabel.setText(R.string.appointment_time);
         appointmentTime.setText("od " + RoomxUtils.formatHour(currentAppointment.getStart()) + " do " + RoomxUtils.formatHour(currentAppointment.getEnd()) + " (" + RoomxUtils.getMinuteHourFormatFromStringMinutes(currentAppointment.getEnd(), currentAppointment.getStart())  + ")");
+
+
+        Button button = new Button(ctx);
+        button.setText(R.string.release);
+        LinearLayout.LayoutParams layoutParams = new  LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        layoutParams.weight = 0.5f;
+
+        TextView textViewDummy = new TextView(ctx);
+        textViewDummy.setLayoutParams(layoutParams);
+
+        button.setLayoutParams(layoutParams);
+        button.setTextSize(50);
+        button.setBackgroundColor(ctx.getResources().getColor(R.color.create_button));
+
+        button.setOnClickListener(buttonReleaseListener);
+
+        LinearLayout wrapper = (LinearLayout) ctx.findViewById(R.id.buttonsWrapper);
+        wrapper.removeAllViews();
+        wrapper.addView(textViewDummy);
+        wrapper.addView(button);
     }
 }

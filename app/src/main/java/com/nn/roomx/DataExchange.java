@@ -1,6 +1,7 @@
 package com.nn.roomx;
 
 import android.os.AsyncTask;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -8,8 +9,11 @@ import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
 import com.nn.roomx.ObjClasses.Appointment;
 import com.loopj.android.http.SyncHttpClient;
+import com.nn.roomx.ObjClasses.Event;
+import com.nn.roomx.ObjClasses.Person;
 import com.nn.roomx.ObjClasses.Room;
 import com.nn.roomx.ObjClasses.ServiceResponse;
+import com.nn.roomx.ObjClasses.SystemProperty;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -25,6 +29,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -40,15 +46,17 @@ import rx.Subscriber;
 public class DataExchange {
 
     private static final String TAG = "RoomX_Data_Exchange";
+    private String url;
 
     RequestParams params = new RequestParams();
     SyncHttpClient client = new SyncHttpClient();
     JSONParser jsonparser = new JSONParser();
 
-    private final String URL_STRING = "http://192.168.100.102:8080";
-
-
     public DataExchange() {
+    }
+
+    public DataExchange(Setting settingsRoomx) {
+        this.url = settingsRoomx.getServerAddress();
     }
 
     public Observable<ServiceResponse<List<Room>>> getRoomListObservable() {
@@ -59,7 +67,7 @@ public class DataExchange {
                 try {
                     Log.i(TAG, "get rooms ");
 
-                    String urlGet = URL_STRING + "/MeetProxy/services/appointment/roomList";
+                    String urlGet = url + "/MeetProxy/services/appointment/roomList";
                     String respString = downloadUrl(new URL(urlGet));
                     List<Room> rooms = jsonparser.parseRoomList(respString);
                     response.ok();
@@ -77,6 +85,7 @@ public class DataExchange {
         });
     }
 
+
     public Observable<ServiceResponse<List<Appointment>>> getAppointmentsForRoomObservable(final String roomId) {
         return Observable.create(new Observable.OnSubscribe<ServiceResponse<List<Appointment>>>() {
             @Override
@@ -85,10 +94,14 @@ public class DataExchange {
                 try {
                     Log.i(TAG, "get room appointments " + roomId);
 
-                    String urlGet = URL_STRING + "/MeetProxy/services/appointment?" + addParamToURL("room", roomId);
+                    String urlGet = url + "/MeetProxy/services/appointment?" + addParamToURL("room", roomId);
                     String respString = downloadUrl(new URL(urlGet));
-
                     response.ok();
+
+//                    response.ok();
+//                    response.setResponseObject(createMockAppointments());
+//                    response.setEvents(new ArrayList<Event>());
+//                    response.setProperties(new ArrayList<SystemProperty>());
                     response.setResponseObject(jsonparser.parseAppointmentsList(respString));
                     response.setEvents(jsonparser.parseEvents(respString));
                     response.setProperties(jsonparser.parseSystemProperties(respString));
@@ -105,6 +118,90 @@ public class DataExchange {
         });
     }
 
+    public Observable<ServiceResponse<List<Appointment>>> getAppConfig(final String roomId) {
+        return Observable.create(new Observable.OnSubscribe<ServiceResponse<List<Appointment>>>() {
+            @Override
+            public void call(Subscriber<? super ServiceResponse<List<Appointment>>> subscriber) {
+                ServiceResponse<List<Appointment>> response = new ServiceResponse<List<Appointment>>();
+                try {
+                    Log.i(TAG, "get room appointments " + roomId);
+
+                    String urlGet = url + "/MeetProxy/app/config?" + addParamToURL("room", roomId);
+                    String respString = downloadUrl(new URL(urlGet));
+                    response.ok();
+
+                    response.setEvents(jsonparser.parseEvents(respString));
+                    response.setProperties(jsonparser.parseSystemProperties(respString));
+
+                    subscriber.onNext(response);
+                    subscriber.onCompleted();
+                } catch (Exception e) {
+                    response.fail();
+                    response.setMessage(e.getMessage());
+                    e.printStackTrace();
+                    subscriber.onError(e);
+                }
+            }
+        });
+    }
+
+
+
+    private List<Appointment> createMockAppointments() {
+        List<Appointment> result = new ArrayList<Appointment>();
+
+        int r = (int) (Math.random() * 100);
+
+        Log.i(RoomxUtils.TAG, "-------------" + r);
+
+
+
+        if(1 == 1) {
+
+            Calendar start = Calendar.getInstance();
+            start.setTime(new Date());
+            start.set(java.util.Calendar.SECOND, 0);
+            start.set(java.util.Calendar.MILLISECOND, 0);
+            start.add(java.util.Calendar.MINUTE, 0);
+
+            Appointment a = new Appointment();
+            a.setVirtual(true);
+            a.setStart(start.getTime());
+
+            start.add(java.util.Calendar.HOUR, 1);
+            a.setEnd(start.getTime());
+            a.setMinutes(60);
+
+            result.add(a);
+
+        }else{
+
+            Calendar start = Calendar.getInstance();
+            start.setTime(new Date());
+            start.set(java.util.Calendar.SECOND, 0);
+            start.set(java.util.Calendar.MILLISECOND, 0);
+            start.add(java.util.Calendar.MINUTE, 0);
+
+            Appointment a = new Appointment();
+            a.setVirtual(false);
+            a.setStart(start.getTime());
+
+            start.add(java.util.Calendar.HOUR, 1);
+            a.setEnd(start.getTime());
+            a.setMinutes(60);
+
+            Person p = new Person();
+            p.setName("Piotr Sobotka");
+            a.setOwner(p);
+
+
+            result.add(a);
+
+        }
+
+        return result;
+    }
+
     public Observable<ServiceResponse<Boolean>> getCreateAppointmentObservable(final String userId, final String roomId, final String subject, final Date startDate, final Date endDate) {
         return Observable.create(new Observable.OnSubscribe<ServiceResponse<Boolean>>() {
             @Override
@@ -117,7 +214,7 @@ public class DataExchange {
                 String end = formatter.format(endDate);
                 try {
                     Log.i(TAG, "create appointemnt  " + roomId + " " + userId + " " + subject);
-                    String urlGet = URL_STRING + "/MeetProxy/services/appointment/create?" + addParamToURL("roomID", roomId) + "&" + addParamToURL("memberID", userId) + "&" + addParamToURL("subject", subject) + "&" + addParamToURL("start", start) + "&" + addParamToURL("end", end);
+                    String urlGet = url + "/MeetProxy/services/appointment/create?" + addParamToURL("roomID", roomId) + "&" + addParamToURL("memberID", userId) + "&" + addParamToURL("subject", subject) + "&" + addParamToURL("start", start) + "&" + addParamToURL("end", end);
                     String respString = downloadUrl(new URL(urlGet));
                     response.ok();
                     response.setResponseObject(true);
@@ -148,7 +245,7 @@ public class DataExchange {
                     String postData = addParamToURL("roomID", roomId) + "&" + addParamToURL("msg", msg) + "&" + addParamToURL("stackTrace", sw.toString());
                     Log.i(TAG, "Post data error " + postData);
 
-                    String urlGet = URL_STRING + "/MeetProxy/services/appointment/error";
+                    String urlGet = url + "/MeetProxy/services/appointment/error";
                     String respString = postURL(new URL(urlGet), postData);
                     response.ok();
                     response.setResponseObject(true);
@@ -173,7 +270,7 @@ public class DataExchange {
                 ServiceResponse<Boolean> response = new ServiceResponse<Boolean>();
 
                 try {
-                    String urlGet = URL_STRING + "/MeetProxy/services/appointment/confirm?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", meetingId);
+                    String urlGet = url + "/MeetProxy/services/appointment/confirm?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", meetingId);
                     String respString = downloadUrl(new URL(urlGet));
                     response.ok();
                     response.setResponseObject(true);
@@ -198,8 +295,10 @@ public class DataExchange {
                 ServiceResponse<Boolean> response = new ServiceResponse<Boolean>();
                 String urlGet = "";
                 try {
-                    urlGet = URL_STRING + "/MeetProxy/services/appointment/cancel?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", appointmentID);
+                    urlGet = url + "/MeetProxy/services/appointment/cancel?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", appointmentID);
                     String respString = downloadUrl(new URL(urlGet));
+
+
                     response.ok();
                     response.setResponseObject(true);
                     subscriber.onNext(response); // Emit the contents of the URL
@@ -218,10 +317,32 @@ public class DataExchange {
     }
 
 
-    public ServiceResponse<Boolean> confirmStarted(String userId, String meetingId) throws Exception {
+    public Observable<ServiceResponse<Boolean>> getFinishAppointmentObservable(final String userId, final String meetingId) {
+        return Observable.create(new Observable.OnSubscribe<ServiceResponse<Boolean>>() {
+            @Override
+            public void call(Subscriber<? super ServiceResponse<Boolean>> subscriber) {
+                ServiceResponse<Boolean> response = new ServiceResponse<Boolean>();
+                String urlGet = "";
+                try {
+                    urlGet = url + "/MeetProxy/services/appointment/finish?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", meetingId);
+                    Log.i(RoomxUtils.TAG, "----------------- finish " + urlGet);
+                    String respString = downloadUrl(new URL(urlGet));
+                    response = jsonparser.parseBaseResponse(respString);
 
+                    response.setResponseObject(true);
+                    subscriber.onNext(response);
+                    subscriber.onCompleted();
+                } catch (Exception e) {
+                    Log.e(TAG, urlGet + " " + e.getMessage());
+                    response.fail();
+                    response.setResponseObject(false);
+                    response.setMessage("TECHNICAL_ERROR");
+                    e.printStackTrace();
+                    subscriber.onError(e);
+                }
 
-        return null;
+            }
+        });
 
     }
 
@@ -275,11 +396,13 @@ public class DataExchange {
         HttpURLConnection connection = null;
         String result = null;
         try {
+            String basicAuth = "Basic " + Base64.encodeToString("user:user".getBytes(), Base64.NO_WRAP);
             connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestProperty ("Authorization", basicAuth);
 
-            connection.setReadTimeout(3000);
+            connection.setReadTimeout(10000);
 
-            connection.setConnectTimeout(3000);
+            connection.setConnectTimeout(10000);
 
             connection.setRequestMethod("GET");
 
@@ -318,7 +441,7 @@ public class DataExchange {
     }
 
     private String addParamToURL(String name, String value) throws UnsupportedEncodingException {
-        if(value == null){
+        if (value == null) {
             value = "";
         }
         return URLEncoder.encode(name, "UTF-8") + "=" + URLEncoder.encode(value, "UTF-8");

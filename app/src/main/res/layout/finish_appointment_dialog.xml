@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:orientation="vertical">
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="0.43"
+        android:background="@android:color/white"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/dummyConfirmReservation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/confirm_room_release"
+            android:textColor="@color/orange"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:layout_marginLeft="10sp"
+            android:layout_marginRight="10sp"
+            android:paddingTop="10dp"
+            android:text="@string/confirm_room_release_info"
+            android:textColor="@color/grayTextColor"
+            android:textSize="20dp"
+            android:id="@+id/dialogInfoText"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="0.22"
+        android:background="@android:color/white"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/confirm_action_nfc"
+            android:id="@+id/dialogImage"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="0.45"
+        android:background="@android:color/white"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/buttonCancelDialog"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="0.2"
+            android:clickable="true"
+            android:text="@string/cancel"
+            android:background="@color/white"
+            android:textColor="@color/create_button"
+            android:textSize="40sp"/>
+
+        <ProgressBar
+            android:id="@+id/timerProgressBar"
+            style="@android:style/Widget.Holo.Light.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:indeterminate="false"
+            android:layout_height="match_parent"
+            android:layout_weight="0.8"
+            android:progressDrawable="@drawable/progress_bar_confirm_action"
+            android:layout_margin="2sp"
+            />
+
+    </LinearLayout>
+</LinearLayout>
