@@ -18,7 +18,8 @@ public class Setting {
 
     private static final String NO_ROOM = "NO_ROOM";
     private static final int APPOINTMENT_CHECK_INTERVAL_SECONDS_DEFAULT = 15;
-    private static final int APPOINTMENT_CANCEL_MINUTE_SHIFT = 65;
+    private static final int APPOINTMENT_CANCEL_MINUTE_SHIFT = 15;
+    private static final int APPOINTMENT_READY_FOR_ACTION_BEFORE_START_MINUTES = 5;
 
     private String roomId;
     private String password = "a";
@@ -27,6 +28,7 @@ public class Setting {
     private int cancelMinuteShift = APPOINTMENT_CANCEL_MINUTE_SHIFT;
     private int monitoriInactiveDialogueSeconds = 60;
     private String serverAddress = "http://192.168.100.102:8080";
+    private int appointmentReadyForActionBofreStartMinutes = APPOINTMENT_READY_FOR_ACTION_BEFORE_START_MINUTES;
 
     public Setting(SharedPreferences sharedPreferences) {
         this.sharedPreferences = sharedPreferences;
@@ -103,5 +105,13 @@ public class Setting {
 
     public String getServerAddress() {
         return serverAddress;
+    }
+
+    public int getAppointmentReadyForActionBofreStartMinutes() {
+        return appointmentReadyForActionBofreStartMinutes;
+    }
+
+    public void setAppointmentReadyForActionBofreStartMinutes(int appointmentReadyForActionBofreStartMinutes) {
+        this.appointmentReadyForActionBofreStartMinutes = appointmentReadyForActionBofreStartMinutes;
     }
 }

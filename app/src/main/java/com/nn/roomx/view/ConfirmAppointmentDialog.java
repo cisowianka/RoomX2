@@ -3,8 +3,6 @@ package com.nn.roomx.view;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.nn.roomx.DataExchange;
 import com.nn.roomx.MainActivity;
@@ -25,14 +23,12 @@ import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
 /**
- * Created by user on 2017-02-03.
+ * Created by user on 2017-02-05.
  */
 
-public class FinishAppointmentDialog extends AbstractDialog {
+public class ConfirmAppointmentDialog extends AbstractDialog {
 
-
-
-    public FinishAppointmentDialog(MainActivity context, Appointment appointment, DataExchange dataExchange, Setting setting, DialogueHelper.DialogueHelperAction callback) {
+    public ConfirmAppointmentDialog(MainActivity context, Appointment appointment, DataExchange dataExchange, Setting setting, DialogueHelper.DialogueHelperAction callback) {
         super(context);
         this.activity = context;
         this.appointment = appointment;
@@ -51,16 +47,14 @@ public class FinishAppointmentDialog extends AbstractDialog {
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FinishAppointmentDialog.this.hide();
+                ConfirmAppointmentDialog.this.hide();
                 countDownTimer.cancel();
                 progress.dismiss();
-                stopListner();
             }
         });
 
         startListener();
     }
-
 
     private void startListener() {
         listener = Observable.concat(activity.getNFCEventsQueue(), Observable.just("EMPTY"))
@@ -69,9 +63,9 @@ public class FinishAppointmentDialog extends AbstractDialog {
                 .first().subscribe(new Action1<String>() {
                                        @Override
                                        public void call(String userId) {
-                                           Log.i(RoomxUtils.TAG, "nfcEvents ----------observable events cancel  " + userId);
+                                           Log.i(RoomxUtils.TAG, "nfcEvents ----------observable events confirm  " + userId);
                                            progress.show();
-                                           Observable.concat(dataExchange.getFinishAppointmentObservable(userId, appointment.getID()).flatMap(new Func1<ServiceResponse<Boolean>, Observable<String>>() {
+                                           Observable.concat(dataExchange.getCoonfirmAppointmentObservable(userId, appointment.getID()).flatMap(new Func1<ServiceResponse<Boolean>, Observable<String>>() {
                                                @Override
                                                public Observable<String> call(ServiceResponse<Boolean> serviceResponse) {
                                                    if (serviceResponse.isOK()) {
@@ -95,7 +89,8 @@ public class FinishAppointmentDialog extends AbstractDialog {
                                                                       ServiceResponse<List<Appointment>> response = (ServiceResponse<List<Appointment>>) o;
                                                                       callback.refreshAppoitnments(response);
                                                                       progress.dismiss();
-                                                                      showSuccess("SALKA ZOSTAŁA ZWOLNIONA", "Dziękujemy za zwolnienei salki.");
+                                                                      //TODO: remove hardcode
+                                                                      showSuccess("SPOTKANIE POTWIERDZONE", "Dziękujemy.");
                                                                   }
                                                               },
 
@@ -120,6 +115,7 @@ public class FinishAppointmentDialog extends AbstractDialog {
 
                             public void call(Throwable e) {
                                 Log.e(RoomxUtils.TAG, "ERROR FINISH LAST " + e.getMessage(), e);
+                                showError("UPSS", e.getMessage());
                                 progress.dismiss();
                             }
                         });
@@ -128,6 +124,6 @@ public class FinishAppointmentDialog extends AbstractDialog {
 
     @Override
     protected int getLayoutId() {
-        return R.layout.finish_appointment_dialog;
+        return R.layout.confirm_appointment_dialog;
     }
 }

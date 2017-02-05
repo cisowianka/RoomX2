@@ -25,14 +25,12 @@ import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
 /**
- * Created by user on 2017-02-03.
+ * Created by user on 2017-02-04.
  */
 
-public class FinishAppointmentDialog extends AbstractDialog {
+public class CancelAppointmentDialog extends AbstractDialog {
 
-
-
-    public FinishAppointmentDialog(MainActivity context, Appointment appointment, DataExchange dataExchange, Setting setting, DialogueHelper.DialogueHelperAction callback) {
+    public CancelAppointmentDialog(MainActivity context, Appointment appointment, DataExchange dataExchange, Setting setting, DialogueHelper.DialogueHelperAction callback) {
         super(context);
         this.activity = context;
         this.appointment = appointment;
@@ -51,19 +49,17 @@ public class FinishAppointmentDialog extends AbstractDialog {
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FinishAppointmentDialog.this.hide();
+                CancelAppointmentDialog.this.hide();
                 countDownTimer.cancel();
                 progress.dismiss();
-                stopListner();
             }
         });
 
         startListener();
     }
 
-
     private void startListener() {
-        listener = Observable.concat(activity.getNFCEventsQueue(), Observable.just("EMPTY"))
+        Subscription subscribe = Observable.concat(activity.getNFCEventsQueue(), Observable.just("EMPTY"))
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .first().subscribe(new Action1<String>() {
@@ -71,7 +67,7 @@ public class FinishAppointmentDialog extends AbstractDialog {
                                        public void call(String userId) {
                                            Log.i(RoomxUtils.TAG, "nfcEvents ----------observable events cancel  " + userId);
                                            progress.show();
-                                           Observable.concat(dataExchange.getFinishAppointmentObservable(userId, appointment.getID()).flatMap(new Func1<ServiceResponse<Boolean>, Observable<String>>() {
+                                           Observable.concat(dataExchange.getCancelAppointmentObservable(userId, appointment.getID()).flatMap(new Func1<ServiceResponse<Boolean>, Observable<String>>() {
                                                @Override
                                                public Observable<String> call(ServiceResponse<Boolean> serviceResponse) {
                                                    if (serviceResponse.isOK()) {
@@ -95,6 +91,7 @@ public class FinishAppointmentDialog extends AbstractDialog {
                                                                       ServiceResponse<List<Appointment>> response = (ServiceResponse<List<Appointment>>) o;
                                                                       callback.refreshAppoitnments(response);
                                                                       progress.dismiss();
+                                                                      //TODO: remove hardcode
                                                                       showSuccess("SALKA ZOSTAŁA ZWOLNIONA", "Dziękujemy za zwolnienei salki.");
                                                                   }
                                                               },
@@ -120,6 +117,7 @@ public class FinishAppointmentDialog extends AbstractDialog {
 
                             public void call(Throwable e) {
                                 Log.e(RoomxUtils.TAG, "ERROR FINISH LAST " + e.getMessage(), e);
+                                showError("UPSS", e.getMessage());
                                 progress.dismiss();
                             }
                         });

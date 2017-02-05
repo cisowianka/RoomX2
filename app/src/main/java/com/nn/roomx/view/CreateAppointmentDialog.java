@@ -1,9 +1,9 @@
 package com.nn.roomx.view;
 
 import android.app.Dialog;
-import android.content.Context;
 import android.graphics.Point;
 import android.os.CountDownTimer;
+import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -11,78 +11,59 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.nn.roomx.DataExchange;
 import com.nn.roomx.MainActivity;
 import com.nn.roomx.ObjClasses.Appointment;
+import com.nn.roomx.ObjClasses.ServiceResponse;
 import com.nn.roomx.R;
 import com.nn.roomx.RoomxUtils;
+import com.nn.roomx.Setting;
 import com.nn.roomx.view.seekbar.IRangeBarFormatter;
 import com.nn.roomx.view.seekbar.RangeBar;
 
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by user on 2017-01-21.
  */
 
-public class CreateAppointmentDialog extends Dialog {
+public class CreateAppointmentDialog extends AbstractDialog {
 
 
-    private final Appointment currentAppointment;
     private Date start;
-
     private Date end;
 
-    private MainActivity activity;
-
-    private DialogueHelper.DialogueHelperButtonAction cancelActioin;
-
-    private CountDownTimer countDownTimer;
-
-    private String enteredUserId = "";
-
-    public CreateAppointmentDialog(MainActivity context, Appointment currentAppointment, DialogueHelper.DialogueHelperButtonAction cancelActioin) {
+    public CreateAppointmentDialog(MainActivity context, Appointment appointment, DataExchange dataExchange, Setting setting, DialogueHelper.DialogueHelperAction callback) {
         super(context);
         this.activity = context;
-        this.currentAppointment = currentAppointment;
-        this.cancelActioin = cancelActioin;
+        this.appointment = appointment;
+        this.dataExchange = dataExchange;
+        this.setting = setting;
+        this.callback = callback;
     }
 
 
-    public void init(){
+    public void init() {
 
-        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-
-        LayoutInflater inflater = activity.getLayoutInflater();
-        LinearLayout dialogView = (LinearLayout) inflater.inflate(R.layout.create_appointment_dialog, null);
-        Display display = activity.getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-        int width = size.x;
-        int height = size.y;
-
-        final ProgressBar actionTimer = (ProgressBar) dialogView.findViewById(R.id.timerProgressBar);
-
-        //count down 60 seconds
-        countDownTimer = new CountDownTimer(60 * 1000, 500) {
-            @Override
-            public void onTick(long leftTimeInMilliseconds) {
-                long seconds = leftTimeInMilliseconds / 1000;
-                int percentageSeconds = (int) seconds % 60 * 100 / 60;
-                actionTimer.setProgress(percentageSeconds);
-            }
-
-            @Override
-            public void onFinish() {
-            }
-        }.start();
+        initWindow();
+        this.setContentView(dialogView);
 
         RangeBar seekBar = (RangeBar) dialogView.findViewById(R.id.seekBar);
-        long minutes = RoomxUtils.diffDatesInMinutes(currentAppointment.getEnd(), currentAppointment.getStart());
+        long minutes = RoomxUtils.diffDatesInMinutes(appointment.getEnd(), appointment.getStart());
 
         final TextView appointmentStart = (TextView) dialogView.findViewById(R.id.appointmentStartText);
         final TextView appointmentEnd = (TextView) dialogView.findViewById(R.id.appointmentEndText);
@@ -95,24 +76,24 @@ public class CreateAppointmentDialog extends Dialog {
         seekBar.setFormatter(new IRangeBarFormatter() {
             @Override
             public String format(String value) {
-                return RoomxUtils.getMinuteHourFormatFromMinutes(currentAppointment.getStart(), value);
+                return RoomxUtils.getMinuteHourFormatFromMinutes(appointment.getStart(), value);
             }
         });
 
-        setStart(RoomxUtils.getDateFromStartPlusShift(currentAppointment.getStart(), seekBar.getLeftPinValue()));
-        setEnd(RoomxUtils.getDateFromStartPlusShift(currentAppointment.getStart(), seekBar.getRightPinValue()));
+        this.start = RoomxUtils.getDateFromStartPlusShift(appointment.getStart(), seekBar.getLeftPinValue());
+        this.end = RoomxUtils.getDateFromStartPlusShift(appointment.getStart(), seekBar.getRightPinValue());
 
         seekBar.setOnRangeBarChangeListener(new RangeBar.OnRangeBarChangeListener() {
             @Override
             public void onRangeChangeListener(RangeBar rangeBar, int leftPinIndex,
                                               int rightPinIndex,
                                               String leftPinValue, String rightPinValue) {
-                appointmentStart.setText(RoomxUtils.getMinuteHourFormatFromMinutes(currentAppointment.getStart(), leftPinValue));
-                appointmentEnd.setText(RoomxUtils.getMinuteHourFormatFromMinutes(currentAppointment.getStart(), rightPinValue));
+                appointmentStart.setText(RoomxUtils.getMinuteHourFormatFromMinutes(appointment.getStart(), leftPinValue));
+                appointmentEnd.setText(RoomxUtils.getMinuteHourFormatFromMinutes(appointment.getStart(), rightPinValue));
                 appointmentRange.setText(RoomxUtils.getMinuteHourFormatFromStringMinutes(rightPinValue, leftPinValue));
 
-                CreateAppointmentDialog.this.setStart(RoomxUtils.getDateFromStartPlusShift(currentAppointment.getStart(), leftPinValue));
-                CreateAppointmentDialog.this.setEnd(RoomxUtils.getDateFromStartPlusShift(currentAppointment.getStart(), rightPinValue));
+                CreateAppointmentDialog.this.start = RoomxUtils.getDateFromStartPlusShift(appointment.getStart(), leftPinValue);
+                CreateAppointmentDialog.this.end = RoomxUtils.getDateFromStartPlusShift(appointment.getStart(), rightPinValue);
 
             }
         });
@@ -126,75 +107,157 @@ public class CreateAppointmentDialog extends Dialog {
             public void onClick(View v) {
                 CreateAppointmentDialog.this.hide();
                 countDownTimer.cancel();
-                cancelActioin.action();
+                stopListner();
+                callback.onFinish();
             }
         });
 
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-        lp.copyFrom(this.getWindow().getAttributes());
-        lp.width = (int) (width * 0.9);
-        lp.height = (int) (height * 0.9);
-        this.getWindow().setAttributes(lp);
-
-
-        //TODO: remove
-        TextView viewById = (TextView) dialogView.findViewById(R.id.dummyConfirmReservation);
-        viewById.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                activity.nfcFakeSignal();
-            }
-        });
-
-        appointmentStart.setText(RoomxUtils.getMinuteHourFormatFromMinutes(currentAppointment.getStart(), seekBar.getLeftPinValue()));
-        appointmentEnd.setText(RoomxUtils.getMinuteHourFormatFromMinutes(currentAppointment.getStart(), seekBar.getRightPinValue()));
+        appointmentStart.setText(RoomxUtils.getMinuteHourFormatFromMinutes(appointment.getStart(), seekBar.getLeftPinValue()));
+        appointmentEnd.setText(RoomxUtils.getMinuteHourFormatFromMinutes(appointment.getStart(), seekBar.getRightPinValue()));
         appointmentRange.setText(RoomxUtils.getMinuteHourFormatFromStringMinutes(seekBar.getRightPinValue(), seekBar.getLeftPinValue()));
 
+        wrapWindow();
+
+        startListener();
     }
+
+
+    private void startListener() {
+        listener = Observable.concat(activity.getNFCEventsQueue(), Observable.just("EMPTY"))
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .first().subscribe(new Action1<String>() {
+                                       @Override
+                                       public void call(String userId) {
+                                           Log.i(RoomxUtils.TAG, "nfcEvents ----------observable events create  " + userId);
+                                           progress.show();
+                                           Observable.concat(dataExchange.getCreateAppointmentObservable(userId, setting.getRoomId(), setting.getDefaultSubject(), CreateAppointmentDialog.this
+                                                   .start, CreateAppointmentDialog.this.end).flatMap(new Func1<ServiceResponse<Boolean>, Observable<String>>() {
+                                               @Override
+                                               public Observable<String> call(ServiceResponse<Boolean> serviceResponse) {
+                                                   if (serviceResponse.isOK()) {
+                                                       return Observable.just(String.valueOf(serviceResponse.isOK()));
+                                                   } else {
+                                                       throw new RuntimeException(serviceResponse.getMessage());
+                                                   }
+                                               }
+                                           }), Observable.timer(10, TimeUnit.SECONDS).flatMap(new Func1<Long, Observable<String>>() {
+                                               @Override
+                                               public Observable<String> call(Long o) {
+                                                   return Observable.just(o.toString());
+                                               }
+                                           }), dataExchange.getAppointmentsForRoomObservable(setting.getRoomId()))
+                                                   .subscribeOn(Schedulers.newThread())
+                                                   .observeOn(AndroidSchedulers.mainThread())
+                                                   .last()
+                                                   .subscribe(new Action1<Object>() {
+                                                                  @Override
+                                                                  public void call(Object o) {
+                                                                      ServiceResponse<List<Appointment>> response = (ServiceResponse<List<Appointment>>) o;
+                                                                      callback.refreshAppoitnments(response);
+                                                                      progress.dismiss();
+                                                                      showSuccess("REZERWACJA ZAPISANA", "Dziękujemy.");
+                                                                  }
+                                                              },
+
+                                                           new Action1<Throwable>()
+
+                                                           {
+
+                                                               public void call(Throwable e) {
+                                                                   Log.e(RoomxUtils.TAG, "ERROR FINISH " + e.getMessage(), e);
+                                                                   showError("UPSS", e.getMessage());
+                                                                   progress.dismiss();
+                                                               }
+                                                           });
+
+
+                                       }
+                                   },
+
+                        new Action1<Throwable>()
+
+                        {
+
+                            public void call(Throwable e) {
+                                Log.e(RoomxUtils.TAG, "ERROR FINISH LAST " + e.getMessage(), e);
+                                progress.dismiss();
+                            }
+                        });
+    }
+
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
 
 
-        try
-        {
+        try {
             //
-            if(event.getAction()== KeyEvent.ACTION_UP)
-            {
+            if (event.getAction() == KeyEvent.ACTION_UP) {
 
-                if(KeyEvent.KEYCODE_ENTER == event.getKeyCode()){
-                    Toast.makeText(activity, "Clicked ENTER " + enteredUserId, Toast.LENGTH_SHORT).show();
-                    activity.putEvent(enteredUserId.replace(" ", "") + "@sobotka.info");
-                    enteredUserId= "";
-                }
-                enteredUserId += (char)event.getUnicodeChar();
+//                if(KeyEvent.KEYCODE_ENTER == event.getKeyCode()){
+//                    Toast.makeText(activity, "Clicked ENTER " + enteredUserId, Toast.LENGTH_SHORT).show();
+//                    activity.putEvent(enteredUserId.replace(" ", "") + "@sobotka.info");
+//                    enteredUserId= "";
+//                }
+//                enteredUserId += (char)event.getUnicodeChar();
             }
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
 
         return true;
     }
 
-    public Date getStart() {
-        return start;
+    protected void showError(String titleText, String subbtilteText) {
+        TextView title = (TextView) dialogView.findViewById(R.id.dialogTitle);
+        TextView titleInfoText = (TextView) dialogView.findViewById(R.id.dialogInfoText);
+        ImageView image = (ImageView) dialogView.findViewById(R.id.dialogImage);
+        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonCancelDialog);
+        LinearLayout timeRangeWrapper = (LinearLayout)dialogView.findViewById(R.id.timeRageWrapper);
+
+
+        cancelButton.setText(R.string.ok);
+        cancelButton.setBackgroundColor(getContext().getResources().getColor(R.color.create_button));
+        cancelButton.setTextColor(getContext().getResources().getColor(R.color.white));
+
+        title.setText(titleText);
+        titleInfoText.setText(subbtilteText);
+
+        timeRangeWrapper.removeAllViews();
+
+        image = new ImageView(getContext());
+        image.setImageResource(R.drawable.dialog_action_error);
+
+        timeRangeWrapper.addView(image);
+
     }
 
-    public void setStart(Date start) {
-        this.start = start;
+    protected void showSuccess(String titleText, String subbtilteText) {
+        TextView title = (TextView) dialogView.findViewById(R.id.dialogTitle);
+        TextView titleInfoText = (TextView) dialogView.findViewById(R.id.dialogInfoText);
+        ImageView image = (ImageView) dialogView.findViewById(R.id.dialogImage);
+        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonCancelDialog);
+        LinearLayout timeRangeWrapper = (LinearLayout)dialogView.findViewById(R.id.timeRageWrapper);
+
+        cancelButton.setText(R.string.ok);
+        cancelButton.setBackgroundColor(getContext().getResources().getColor(R.color.create_button));
+        cancelButton.setTextColor(getContext().getResources().getColor(R.color.white));
+
+        title.setText(titleText);
+        titleInfoText.setText(subbtilteText);
+
+        timeRangeWrapper.removeAllViews();
+
+        image = new ImageView(getContext());
+        image.setImageResource(R.drawable.dialog_action_success);
+        timeRangeWrapper.addView(image);
+
+
     }
 
-    public Date getEnd() {
-        return end;
-    }
-
-    public void setEnd(Date end) {
-        this.end = end;
-    }
-
-    public void confirmActionPerformed(){
-        countDownTimer.cancel();
+    @Override
+    protected int getLayoutId() {
+        return R.layout.create_appointment_dialog;
     }
 }

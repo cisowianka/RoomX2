@@ -18,7 +18,7 @@
             android:id="@+id/dialogTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/confirm_room_release"
+            android:text="@string/confirm_appointment"
             android:textColor="@color/orange"
             android:textSize="30sp"
             android:textStyle="bold" />
@@ -30,7 +30,7 @@
             android:layout_marginLeft="10sp"
             android:layout_marginRight="10sp"
             android:paddingTop="10dp"
-            android:text="@string/confirm_room_release_info"
+            android:text="@string/confirm_appointment_info"
             android:textColor="@color/grayTextColor"
             android:textSize="20dp"
             android:id="@+id/dialogInfoText"/>

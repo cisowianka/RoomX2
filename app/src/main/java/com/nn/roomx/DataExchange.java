@@ -268,20 +268,22 @@ public class DataExchange {
             @Override
             public void call(Subscriber<? super ServiceResponse<Boolean>> subscriber) {
                 ServiceResponse<Boolean> response = new ServiceResponse<Boolean>();
-
+                String urlGet = "";
                 try {
-                    String urlGet = url + "/MeetProxy/services/appointment/confirm?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", meetingId);
+                    urlGet = url + "/MeetProxy/services/appointment/confirm?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", meetingId);
                     String respString = downloadUrl(new URL(urlGet));
-                    response.ok();
+                    response = jsonparser.parseBaseResponse(respString);
+
                     response.setResponseObject(true);
-                    subscriber.onNext(response); // Emit the contents of the URL
-                    subscriber.onCompleted(); // Nothing more to emit
+                    subscriber.onNext(response);
+                    subscriber.onCompleted();
                 } catch (Exception e) {
+                    Log.e(TAG, urlGet + " " + e.getMessage());
                     response.fail();
                     response.setResponseObject(false);
-                    response.setMessage(e.getMessage());
+                    response.setMessage("TECHNICAL_ERROR");
                     e.printStackTrace();
-                    subscriber.onError(e); // In case there are network errors
+                    subscriber.onError(e);
                 }
 
             }
@@ -297,19 +299,18 @@ public class DataExchange {
                 try {
                     urlGet = url + "/MeetProxy/services/appointment/cancel?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", appointmentID);
                     String respString = downloadUrl(new URL(urlGet));
+                    response = jsonparser.parseBaseResponse(respString);
 
-
-                    response.ok();
                     response.setResponseObject(true);
-                    subscriber.onNext(response); // Emit the contents of the URL
-                    subscriber.onCompleted(); // Nothing more to emit
+                    subscriber.onNext(response);
+                    subscriber.onCompleted();
                 } catch (Exception e) {
                     Log.e(TAG, urlGet + " " + e.getMessage());
                     response.fail();
                     response.setResponseObject(false);
-                    response.setMessage(urlGet + " " + e.getMessage());
+                    response.setMessage("TECHNICAL_ERROR");
                     e.printStackTrace();
-                    subscriber.onError(e); // In case there are network errors
+                    subscriber.onError(e);
                 }
 
             }

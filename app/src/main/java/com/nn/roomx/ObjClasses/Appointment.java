@@ -172,8 +172,6 @@ public class Appointment {
         appCal.setTime(getStart());
         appCal.add(Calendar.MINUTE, cancelMinuteShift);
 
-        Log.i(TAG, getStart() + " ***** " + appCal.getTime() + " @@@@@@ " + new Date());
-
         return new Date().after(appCal.getTime());
 
     }
@@ -186,9 +184,6 @@ public class Appointment {
         Calendar appCalCancel = Calendar.getInstance();
         appCalCancel.setTime(getStart());
         appCalCancel.add(Calendar.MINUTE, cancelMinuteShift);
-
-        Log.i(TAG, getStart() + " ***** " + appCalWarning.getTime() + " @@@@@@ " + new Date());
-
         if (new Date().after(appCalWarning.getTime())) {
             return (int) ((appCalCancel.getTime().getTime() - new Date().getTime()) / (60 * 1000) % 60) + 1;
         } else {
@@ -210,5 +205,24 @@ public class Appointment {
 
     public void setMinutes(int minutes) {
         this.minutes = minutes;
+    }
+
+    public boolean isAvailableForActioin(int appointmentReadyForActionBofreStartMinutes) {
+
+        if (isVirtual()) {
+            //virtual meeting no available for action
+            return false;
+        }else{
+            return true;
+        }
+
+        //TODO: uncomment
+//
+//        Calendar appCal = Calendar.getInstance();
+//        appCal.setTime(getStart());
+//        appCal.add(Calendar.MINUTE, appointmentReadyForActionBofreStartMinutes * -1);
+//
+//        return new Date().after(appCal.getTime());
+
     }
 }

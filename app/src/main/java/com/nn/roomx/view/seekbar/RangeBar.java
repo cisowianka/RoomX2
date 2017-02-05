@@ -1210,8 +1210,8 @@ public class RangeBar extends View {
     /**
      * Handles a {@link android.view.MotionEvent#ACTION_DOWN} event.
      *
-     * @param x the x-coordinate of the down action
-     * @param y the y-coordinate of the down action
+     * @param x the x-coordinate of the down onSuccess
+     * @param y the y-coordinate of the down onSuccess
      */
     private void onActionDown(float x, float y) {
         if (mIsRangeBar) {
@@ -1234,8 +1234,8 @@ public class RangeBar extends View {
      * Handles a {@link android.view.MotionEvent#ACTION_UP} or
      * {@link android.view.MotionEvent#ACTION_CANCEL} event.
      *
-     * @param x the x-coordinate of the up action
-     * @param y the y-coordinate of the up action
+     * @param x the x-coordinate of the up onSuccess
+     * @param y the y-coordinate of the up onSuccess
      */
     private void onActionUp(float x, float y) {
         if (mIsRangeBar && mLeftThumb.isPressed()) {

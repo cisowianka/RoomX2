@@ -16,16 +16,23 @@
     <string name="Book">Zarezerwuj teraz</string>
     <string name="create_appointmnet_title">SZYBKA REZERWACJA</string>
     <string name="next_appointment_will_start_in">NASTĘPNE SPOTKANIE ROZPOCZNIE SIĘ ZA:</string>
+    <string name="appointment_will_start_in">Spotkanie rozpocznie się za:</string>
     <string name="room_is_free_for">Salka jest wolna przez:</string>
     <string name="appointment_ends_in">Spotaknie kończy się za:</string>
     <string name="room_is_available_for_booking">TA SALKA CZEKA NA TWOJĄ REZERWACJĘ</string>
     <string name="appointment_in_progress">TRWA SPOTKANIE</string>
+    <string name="waiting_for_confirmation">OCZEKIWANIE NA POTWIERDZENIE</string>
+    <string name="appointment_confirmed">SPOTKANIE POTWIERDZONE</string>
     <string name="room_is_free_to">wolna do </string>
     <string name="room_is_busy_to">zajęta do </string>
     <string name="create_appointment">Wybierz oczekiwane godziny spotkaniai potwierdź zbliżając swoją kartę do czytnika NFC znajdującego się po lewej stronie.</string>
     <string name="host">organizator:</string>
     <string name="appointment_time">czas spotkania:</string>
     <string name="release">Zwolnij przed czasem</string>
+    <string name="release_reservation">Zwolnij rezerwację</string>
     <string name="confirm_room_release">POTWIERDŹ ZWOLNIENIE SALKI</string>
     <string name="confirm_room_release_info">Aby potwierdzić zwolnienie salki przed czasem zbliż kartę do czytnika NFC znajdującego się po prawej stronie ekranu.</string>
+    <string name="confirm_presence">Potwierdź obecność</string>
+    <string name="confirm_appointment">POTWIERDŹ SPOTKANIE</string>
+    <string name="confirm_appointment_info">Aby potwierdzić przybycie na spotkanie zbliż kartę do czytnika NFC znajdującego się po prawej stronie ekranu.</string>
 </resources>

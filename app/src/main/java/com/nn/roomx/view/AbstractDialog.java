@@ -1,6 +1,7 @@
 package com.nn.roomx.view;
 
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Point;
 import android.os.CountDownTimer;
@@ -9,6 +10,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -18,6 +21,8 @@ import com.nn.roomx.MainActivity;
 import com.nn.roomx.ObjClasses.Appointment;
 import com.nn.roomx.R;
 import com.nn.roomx.Setting;
+
+import rx.Subscription;
 
 /**
  * Created by user on 2017-02-03.
@@ -31,9 +36,17 @@ public abstract class  AbstractDialog  extends Dialog{
     protected CountDownTimer countDownTimer;
     protected DataExchange dataExchange;
     protected Setting setting;
+    protected DialogueHelper.DialogueHelperAction callback;
+    protected ProgressDialog progress = null;
+    protected Subscription listener;
+
 
     public AbstractDialog(Context context) {
         super(context);
+        progress = new ProgressDialog(context);
+        progress.setTitle("Please wait");
+        progress.setMessage("Data synchronization");
+        progress.setCancelable(false);
     }
 
 
@@ -58,6 +71,8 @@ public abstract class  AbstractDialog  extends Dialog{
             @Override
             public void onFinish() {
                 AbstractDialog.this.cancel();
+                callback.onFinish();
+                progress.dismiss();
             }
         }.start();
 
@@ -78,14 +93,60 @@ public abstract class  AbstractDialog  extends Dialog{
         this.getWindow().setAttributes(lp);
 
         //TODO: remove
-        TextView viewById = (TextView) dialogView.findViewById(R.id.dummyConfirmReservation);
+        TextView viewById = (TextView) dialogView.findViewById(R.id.dialogTitle);
         viewById.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                activity.nfcFakeSignal();
+                activity.nfcFakeSignal("piotr1@sobotka.info");
             }
         });
 
+        TextView infoText = (TextView) dialogView.findViewById(R.id.dialogInfoText);
+        infoText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                activity.nfcFakeSignal("piotr12@sobotka.info");
+            }
+        });
 
+    }
+
+    protected void showError(String titleText, String subbtilteText) {
+        TextView title = (TextView) dialogView.findViewById(R.id.dialogTitle);
+        TextView titleInfoText = (TextView) dialogView.findViewById(R.id.dialogInfoText);
+        ImageView image = (ImageView) dialogView.findViewById(R.id.dialogImage);
+        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonCancelDialog);
+
+        cancelButton.setText(R.string.ok);
+        cancelButton.setBackgroundColor(getContext().getResources().getColor(R.color.create_button));
+        cancelButton.setTextColor(getContext().getResources().getColor(R.color.white));
+
+        title.setText(titleText);
+        titleInfoText.setText(subbtilteText);
+        image.setImageResource(R.drawable.dialog_action_error);
+
+    }
+
+    protected void showSuccess(String titleText, String subbtilteText) {
+        TextView title = (TextView) dialogView.findViewById(R.id.dialogTitle);
+        TextView titleInfoText = (TextView) dialogView.findViewById(R.id.dialogInfoText);
+        ImageView image = (ImageView) dialogView.findViewById(R.id.dialogImage);
+        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonCancelDialog);
+
+        cancelButton.setText(R.string.ok);
+        cancelButton.setBackgroundColor(getContext().getResources().getColor(R.color.create_button));
+        cancelButton.setTextColor(getContext().getResources().getColor(R.color.white));
+
+        title.setText(titleText);
+        titleInfoText.setText(subbtilteText);
+        image.setImageResource(R.drawable.dialog_action_success);
+
+    }
+
+
+    protected void stopListner() {
+        if(listener != null){
+            listener.unsubscribe();
+        }
     }
 }
