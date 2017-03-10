@@ -156,22 +156,20 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-
-
-        try {
-            //
-            if (event.getAction() == KeyEvent.ACTION_UP) {
-                System.out.println(event.getAction() + " " + event.getKeyCode() + " - " + (char) event.getUnicodeChar());
-                enteredUserId += (char) event.getUnicodeChar();
-                if (KeyEvent.KEYCODE_ENTER == event.getKeyCode()) {
-                    Toast.makeText(getApplicationContext(), "Clicked ENTER " + enteredUserId, Toast.LENGTH_SHORT).show();
-                    nfcEvents.onNext(enteredUserId);
-                    enteredUserId = "";
-                }
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+        //TODO: code this
+//        try {
+//            //
+//            if (event.getAction() == KeyEvent.ACTION_UP) {
+//                enteredUserId += (char) event.getUnicodeChar();
+//                if (KeyEvent.KEYCODE_ENTER == event.getKeyCode()) {
+//                    Log.i(RoomxUtils.TAG, "Enter clicked " + enteredUserId);
+//                    nfcEvents.onNext(enteredUserId);
+//                    enteredUserId = "";
+//                }
+//            }
+//        } catch (Exception ex) {
+//            ex.printStackTrace();
+//        }
 
         return true;
     }
@@ -207,6 +205,9 @@ public class MainActivity extends Activity {
     }
 
     private AlertDialog getRoomSelectionDialog(List<Room> rooms) {
+        Log.i("ROOMX", " getRoomSelectionDialog " );
+
+
         LayoutInflater layoutInflater = LayoutInflater.from(MainActivity.this);
         final View dialogView = layoutInflater.inflate(R.layout.select_room, null);
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
@@ -232,6 +233,7 @@ public class MainActivity extends Activity {
                     dialogView.findViewById(R.id.passwordWrapper).setVisibility(View.INVISIBLE);
                     dialogView.findViewById(R.id.roomsWrapper).setVisibility(View.VISIBLE);
                 } else {
+                    Log.i("ROOMX", " getRoomSelectionDialog password wrong " );
                     Toast.makeText(getApplicationContext(), R.string.wrong_admin_password, Toast.LENGTH_SHORT).show();
                 }
             }
@@ -267,6 +269,7 @@ public class MainActivity extends Activity {
                 .subscribe(new Action1<ServiceResponse<List<Room>>>() {
                                @Override
                                public void call(ServiceResponse<List<Room>> response) {
+                                   Log.i("ROOMX", " get room response " + response.getResponseObject());
                                    getRoomSelectionDialog(response.getResponseObject()).show();
                                }
                            },
@@ -279,6 +282,7 @@ public class MainActivity extends Activity {
     }
 
     private void initListeners() {
+        Log.i("Roomx ", "++++++++++++++++++++" + settingsRoomx.noRoomAssigned());
         if (settingsRoomx.noRoomAssigned()) {
             selectRoom();
         } else {
@@ -408,7 +412,7 @@ public class MainActivity extends Activity {
                     .subscribe(new Action1<Object>() {
                                    @Override
                                    public void call(Object o) {
-                                       Log.i(TAG, "enableAppointmentsListerMode refersh ");
+                                       Log.i(TAG, "enableAppointmentsListerMode refersh " + this.toString());
                                        refreshAppointmentsProgress.show();
                                        dataExchange.getAppointmentsForRoomObservable(getRoomId())
                                                .subscribeOn(Schedulers.newThread())
@@ -511,8 +515,9 @@ public class MainActivity extends Activity {
 
             }
 
+            Log.i(TAG, "Auto cancel appointment isAvailableForCancel? " + getCurrentAppointment().isAvailableForCancel(settingsRoomx.getCancelMinuteShift()));
             if (getCurrentAppointment().isAvailableForCancel(settingsRoomx.getCancelMinuteShift())) {
-
+                Log.i(TAG, "Auto cancel START ACTION ");
 
                 disableListenerMode();
                 disableAppointmentsListerMode();
@@ -523,7 +528,7 @@ public class MainActivity extends Activity {
                     public Observable<String> call(ServiceResponse<Boolean> serviceResponse) {
                         return Observable.just(String.valueOf(serviceResponse.isOK()));
                     }
-                }), Observable.timer(10, TimeUnit.SECONDS).flatMap(new Func1<Long, Observable<String>>() {
+                }), Observable.timer(settingsRoomx.getExchangeActionWaitSeconds(), TimeUnit.SECONDS).flatMap(new Func1<Long, Observable<String>>() {
 
                     @Override
                     public Observable<String> call(Long o) {
@@ -596,8 +601,13 @@ public class MainActivity extends Activity {
     }
 
     private void restartApp() {
-        Intent i = getBaseContext().getPackageManager()
-                .getLaunchIntentForPackage(getBaseContext().getPackageName());
+//        Intent i = getBaseContext().getPackageManager()
+//                .getLaunchIntentForPackage(getBaseContext().getPackageName());
+
+        Intent i = new Intent(this, MainActivity.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        Log.i("ROOMX", "restart app " + i);
         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(i);
     }
@@ -664,26 +674,30 @@ public class MainActivity extends Activity {
 
     private void monitorInactiveDialogue() {
 
-        this.inactiveDialoguMonitor = Observable.interval(settingsRoomx.getMonitoriInactiveDialogueSeconds(), TimeUnit.SECONDS)
-                .subscribeOn(Schedulers.newThread())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<Object>() {
-                               @Override
-                               public void call(Object o) {
+        if(this.inactiveDialoguMonitor == null) {
+            this.inactiveDialoguMonitor = Observable.just("").delay(settingsRoomx.getMonitoriInactiveDialogueSeconds(), TimeUnit.SECONDS)// interval(settingsRoomx.getMonitoriInactiveDialogueSeconds(), TimeUnit.SECONDS)
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(new Action1<Object>() {
+                                   @Override
+                                   public void call(Object o) {
 
-                                   progress.hide();
-                                   refreshAppointmentsProgress.hide();
-                                   cancelConfirmAlert();
-                               }
-                           },
+                                       progress.hide();
+                                       refreshAppointmentsProgress.hide();
+                                       cancelConfirmAlert();
+                                       Log.i(RoomxUtils.TAG, "inactiveDialoguMonitor call");
+                                   }
+                               },
 
-                        new Action1<Throwable>() {
-                            public void call(Throwable e) {
-                                progress.hide();
-                                refreshAppointmentsProgress.hide();
-                                cancelConfirmAlert();
-                            }
-                        });
+                            new Action1<Throwable>() {
+                                public void call(Throwable e) {
+                                    progress.hide();
+                                    refreshAppointmentsProgress.hide();
+                                    cancelConfirmAlert();
+                                    Log.i(RoomxUtils.TAG, "inactiveDialoguMonitor call");
+                                }
+                            });
+        }
     }
 
     private FinishAppointmentDialog finishAppointmentDialog;
@@ -943,13 +957,18 @@ public class MainActivity extends Activity {
 
         //handle current appointment
         int diff = (int) (getCurrentAppointment().getEnd().getTime() - new Date().getTime()) / 1000;
-        startTimers(diff);
+
 
         if (active.isVirtual()) {
             ViewHelper.setFreeRoomView(this, buttonCreateListener, nextAppointment);
         } else {
             ViewHelper.setBusyRoomView(this, buttonFinishListener, getCancelButtonListener(currentAppointment), getConfirmButtonListener(currentAppointment), active);
+            if(!currentAppointment.isConfirmed()){
+                diff = (int) (currentAppointment.getStart().getTime() + settingsRoomx.getCancelMinuteShift()  * 60 * 1000 - new Date().getTime())/1000;
+            }
         }
+
+        startTimers(diff);
     }
 
     private String getRoomId() {

@@ -280,7 +280,6 @@ class PinView extends View {
         }
 
         calibrateTextSize(mTextPaint, text, mBounds.width());
-        Log.i("ROOMX", text + " " +  isRight);
 
         if(isRight){
             canvas.drawText(text,

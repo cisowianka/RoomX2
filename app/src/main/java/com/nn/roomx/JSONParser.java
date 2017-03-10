@@ -102,7 +102,6 @@ public class JSONParser {
 
             SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             try {
-                Log.e("PARSER ", "--- " + c.getString("startStr") + " " + c.getString("endStr"));
                 startDate = formatter.parse(c.getString("startStr"));
                 endDate = formatter.parse(c.getString("endStr"));
             } catch (ParseException e) {
@@ -115,12 +114,10 @@ public class JSONParser {
             tmpApp.setSubject(c.getString("subject"));
             tmpApp.setVirtual(c.getBoolean("isVirtual"));
             tmpApp.setMinutes(c.getInt("minutes"));
-            //Log.e("RoomX", "parsed base data");
             Person owner = new Person(c.getString("ownerMailbox"), c.getString("ownerName"));
 
             tmpApp.setOwner(owner);
             tmpApp.setConfirmed(c.getBoolean("confirmed"));
-            //Log.e("RoomX", "parsed owner");
             JSONArray attendeess = c.getJSONArray("requiredAttetnde");
             tmpApp.setAttendees(new ArrayList<Person>());
             for (int j = 0; j < attendeess.length(); j++) {
@@ -128,11 +125,9 @@ public class JSONParser {
                 JSONObject attj = attendeess.getJSONObject(j);
 
                 Person attNew = new Person(attj.getString("mailbox"), attj.getString("name"));
-                //Log.e("RoomX", "created person "+attNew.toString());
 
                 tmpApp.getAttendees().add(attNew);
             }
-            Log.e("RoomX", "prsing finished - success?");
             result.add(tmpApp);
         }
 

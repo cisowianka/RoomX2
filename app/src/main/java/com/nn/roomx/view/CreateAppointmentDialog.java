@@ -1,21 +1,11 @@
 package com.nn.roomx.view;
 
-import android.app.Dialog;
-import android.graphics.Point;
-import android.os.CountDownTimer;
 import android.util.Log;
-import android.view.Display;
-import android.view.KeyEvent;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.nn.roomx.DataExchange;
 import com.nn.roomx.MainActivity;
@@ -129,7 +119,7 @@ public class CreateAppointmentDialog extends AbstractDialog {
                 .first().subscribe(new Action1<String>() {
                                        @Override
                                        public void call(String userId) {
-                                           Log.i(RoomxUtils.TAG, "nfcEvents ----------observable events create  " + userId);
+                                           Log.i(RoomxUtils.TAG, "nfcEvents ------in dialog----observable events create  " + userId);
                                            progress.show();
                                            Observable.concat(dataExchange.getCreateAppointmentObservable(userId, setting.getRoomId(), setting.getDefaultSubject(), CreateAppointmentDialog.this
                                                    .start, CreateAppointmentDialog.this.end).flatMap(new Func1<ServiceResponse<Boolean>, Observable<String>>() {
@@ -141,7 +131,7 @@ public class CreateAppointmentDialog extends AbstractDialog {
                                                        throw new RuntimeException(serviceResponse.getMessage());
                                                    }
                                                }
-                                           }), Observable.timer(10, TimeUnit.SECONDS).flatMap(new Func1<Long, Observable<String>>() {
+                                           }), Observable.timer(setting.getExchangeActionWaitSeconds(), TimeUnit.SECONDS).flatMap(new Func1<Long, Observable<String>>() {
                                                @Override
                                                public Observable<String> call(Long o) {
                                                    return Observable.just(o.toString());
@@ -186,28 +176,6 @@ public class CreateAppointmentDialog extends AbstractDialog {
                         });
     }
 
-
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-
-
-        try {
-            //
-            if (event.getAction() == KeyEvent.ACTION_UP) {
-
-//                if(KeyEvent.KEYCODE_ENTER == event.getKeyCode()){
-//                    Toast.makeText(activity, "Clicked ENTER " + enteredUserId, Toast.LENGTH_SHORT).show();
-//                    activity.putEvent(enteredUserId.replace(" ", "") + "@sobotka.info");
-//                    enteredUserId= "";
-//                }
-//                enteredUserId += (char)event.getUnicodeChar();
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-
-        return true;
-    }
 
     protected void showError(String titleText, String subbtilteText) {
         TextView title = (TextView) dialogView.findViewById(R.id.dialogTitle);

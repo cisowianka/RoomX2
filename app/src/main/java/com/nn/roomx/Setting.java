@@ -1,7 +1,6 @@
 package com.nn.roomx;
 
 import android.content.SharedPreferences;
-import android.text.Editable;
 import android.util.Log;
 
 /**
@@ -27,8 +26,10 @@ public class Setting {
     private long appointmentRefershIntervalSeconds = APPOINTMENT_CHECK_INTERVAL_SECONDS_DEFAULT;
     private int cancelMinuteShift = APPOINTMENT_CANCEL_MINUTE_SHIFT;
     private int monitoriInactiveDialogueSeconds = 60;
-    private String serverAddress = "http://192.168.100.102:8080";
+//    private String serverAddress = "http://192.168.100.106:8080";
+    private String serverAddress = "http://192.168.100.106:8080";
     private int appointmentReadyForActionBofreStartMinutes = APPOINTMENT_READY_FOR_ACTION_BEFORE_START_MINUTES;
+    private long exchangeActionWaitSeconds = 5;
 
     public Setting(SharedPreferences sharedPreferences) {
         this.sharedPreferences = sharedPreferences;
@@ -113,5 +114,9 @@ public class Setting {
 
     public void setAppointmentReadyForActionBofreStartMinutes(int appointmentReadyForActionBofreStartMinutes) {
         this.appointmentReadyForActionBofreStartMinutes = appointmentReadyForActionBofreStartMinutes;
+    }
+
+    public long getExchangeActionWaitSeconds() {
+        return this.exchangeActionWaitSeconds;
     }
 }

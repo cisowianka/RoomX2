@@ -412,7 +412,7 @@ public class DataExchange {
 
             int responseCode = connection.getResponseCode();
             if (responseCode != HttpsURLConnection.HTTP_OK) {
-                throw new IOException("HTTP error code: " + responseCode);
+                throw new IOException("HTTP error code: " + url + " " + responseCode);
             }
             stream = connection.getInputStream();
 

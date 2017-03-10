@@ -16,6 +16,7 @@ import static android.R.attr.duration;
 public class RoomxUtils {
 
     public static final String TAG = "RoomX";
+    public static final int MINUTE = 60 * 1000;
 
     public static String formatHour(Date date) {
 
@@ -38,25 +39,25 @@ public class RoomxUtils {
 
     public static String getMinuteHourFormatFromMinutes(Date start, String offset) {
         Date date = new Date();
-        date.setTime((Integer.valueOf(offset) * 60 * 1000) + start.getTime());
+        date.setTime((Integer.valueOf(offset) * MINUTE) + start.getTime());
         return formatHour(date);
     }
 
     public static String getMinuteHourFormatFromStringMinutes(String end, String start) {
         Date date = new Date();
-        date.setTime((Integer.valueOf(end) * 60 * 1000) - (Integer.valueOf(start) * 60 * 1000));
+        date.setTime((Integer.valueOf(end) * MINUTE) - (Integer.valueOf(start) * MINUTE) - 60 * MINUTE);
         return formatHour(date);
     }
 
     public static Date getDateFromStartPlusShift(Date start, String shift) {
         Date date = new Date();
-        date.setTime((Integer.valueOf(shift) * 60 * 1000) + start.getTime());
+        date.setTime((Integer.valueOf(shift) * MINUTE) + start.getTime());
         return date;
     }
 
     public static String getMinuteHourFormatFromStringMinutes(Date end, Date start) {
         Date date = new Date();
-        date.setTime(end.getTime() - start.getTime());
+        date.setTime(end.getTime() - start.getTime() - 60 * MINUTE);
         return formatHour(date);
     }
 }

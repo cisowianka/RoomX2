@@ -135,6 +135,11 @@ public class ViewHelper {
             wrapper.addView(textViewDummy);
             wrapper.addView(finishButton);
         } else {
+            //not confirmed
+            if(!currentAppointment.isConfirmed()) {
+                timerText.setText("Spotkanie zostanie automatycznie anulowane za:");
+                appointmentTitle.setText("OCZEKIWANIE NA POTWIERDZENIE");
+            }
             wrapper.setOrientation(LinearLayout.HORIZONTAL);
             wrapper.addView(cancelButton);
             wrapper.addView(confirmButton);

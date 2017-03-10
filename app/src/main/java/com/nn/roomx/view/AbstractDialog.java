@@ -5,7 +5,9 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Point;
 import android.os.CountDownTimer;
+import android.util.Log;
 import android.view.Display;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
@@ -15,11 +17,13 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.nn.roomx.DataExchange;
 import com.nn.roomx.MainActivity;
 import com.nn.roomx.ObjClasses.Appointment;
 import com.nn.roomx.R;
+import com.nn.roomx.RoomxUtils;
 import com.nn.roomx.Setting;
 
 import rx.Subscription;
@@ -39,6 +43,7 @@ public abstract class  AbstractDialog  extends Dialog{
     protected DialogueHelper.DialogueHelperAction callback;
     protected ProgressDialog progress = null;
     protected Subscription listener;
+    protected String enteredUserId = "";
 
 
     public AbstractDialog(Context context) {
@@ -73,6 +78,8 @@ public abstract class  AbstractDialog  extends Dialog{
                 AbstractDialog.this.cancel();
                 callback.onFinish();
                 progress.dismiss();
+                Log.i(RoomxUtils.TAG, "on finish timer abstract appointment");
+
             }
         }.start();
 
@@ -148,5 +155,26 @@ public abstract class  AbstractDialog  extends Dialog{
         if(listener != null){
             listener.unsubscribe();
         }
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+
+
+        try {
+
+            if (event.getAction() == KeyEvent.ACTION_UP) {
+                if(KeyEvent.KEYCODE_ENTER == event.getKeyCode()){
+                    Log.i(RoomxUtils.TAG, "Clicked ENTER " + enteredUserId);
+                    activity.putEvent(enteredUserId.replace(" ", ""));
+                    enteredUserId= "";
+                }
+                enteredUserId += (char)event.getUnicodeChar();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return true;
     }
 }

@@ -2,6 +2,8 @@ package com.nn.roomx.ObjClasses;
 
 import android.util.Log;
 
+import com.nn.roomx.RoomxUtils;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -172,7 +174,11 @@ public class Appointment {
         appCal.setTime(getStart());
         appCal.add(Calendar.MINUTE, cancelMinuteShift);
 
-        return new Date().after(appCal.getTime());
+        boolean result = new Date().after(appCal.getTime());
+
+        Log.i(RoomxUtils.TAG, "isAvailableForCancel? " + result);
+
+        return result;
 
     }
 
@@ -209,20 +215,20 @@ public class Appointment {
 
     public boolean isAvailableForActioin(int appointmentReadyForActionBofreStartMinutes) {
 
-        if (isVirtual()) {
-            //virtual meeting no available for action
-            return false;
-        }else{
-            return true;
-        }
+//        if (isVirtual()) {
+//            //virtual meeting no available for action
+//            return false;
+//        }else{
+//            return true;
+//        }
 
         //TODO: uncomment
-//
-//        Calendar appCal = Calendar.getInstance();
-//        appCal.setTime(getStart());
-//        appCal.add(Calendar.MINUTE, appointmentReadyForActionBofreStartMinutes * -1);
-//
-//        return new Date().after(appCal.getTime());
+
+        Calendar appCal = Calendar.getInstance();
+        appCal.setTime(getStart());
+        appCal.add(Calendar.MINUTE, appointmentReadyForActionBofreStartMinutes * -1);
+
+        return new Date().after(appCal.getTime());
 
     }
 }
