@@ -3,8 +3,6 @@ package com.nn.roomx.view;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.nn.roomx.DataExchange;
 import com.nn.roomx.MainActivity;
@@ -45,13 +43,14 @@ public class CancelAppointmentDialog extends AbstractDialog {
 
         wrapWindow();
 
-        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonCancelDialog);
+        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonFinishDialog);
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 CancelAppointmentDialog.this.hide();
                 countDownTimer.cancel();
                 progress.dismiss();
+                callback.onFinish();
             }
         });
 
@@ -81,7 +80,7 @@ public class CancelAppointmentDialog extends AbstractDialog {
                                                public Observable<String> call(Long o) {
                                                    return Observable.just(o.toString());
                                                }
-                                           }), dataExchange.getAppointmentsForRoomObservable(setting.getRoomId()))
+                                           }), dataExchange.getAppointmentsForRoomObservable(setting.getRoomId(), "Cancel app startListener"))
                                                    .subscribeOn(Schedulers.newThread())
                                                    .observeOn(AndroidSchedulers.mainThread())
                                                    .last()

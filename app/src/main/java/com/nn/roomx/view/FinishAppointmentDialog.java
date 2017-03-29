@@ -3,8 +3,6 @@ package com.nn.roomx.view;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.nn.roomx.DataExchange;
 import com.nn.roomx.MainActivity;
@@ -18,7 +16,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
-import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.functions.Func1;
@@ -47,13 +44,14 @@ public class FinishAppointmentDialog extends AbstractDialog {
 
         wrapWindow();
 
-        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonCancelDialog);
+        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonFinishDialog);
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 FinishAppointmentDialog.this.hide();
                 countDownTimer.cancel();
                 progress.dismiss();
+                callback.onFinish();
                 stopListner();
             }
         });
@@ -85,7 +83,7 @@ public class FinishAppointmentDialog extends AbstractDialog {
                                                public Observable<String> call(Long o) {
                                                    return Observable.just(o.toString());
                                                }
-                                           }), dataExchange.getAppointmentsForRoomObservable(setting.getRoomId()))
+                                           }), dataExchange.getAppointmentsForRoomObservable(setting.getRoomId(), "Finish start listner"))
                                                    .subscribeOn(Schedulers.newThread())
                                                    .observeOn(AndroidSchedulers.mainThread())
                                                    .last()

@@ -91,7 +91,7 @@ public class CreateAppointmentDialog extends AbstractDialog {
 
         this.setContentView(dialogView);
 
-        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonCancelDialog);
+        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonFinishDialog);
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -136,7 +136,7 @@ public class CreateAppointmentDialog extends AbstractDialog {
                                                public Observable<String> call(Long o) {
                                                    return Observable.just(o.toString());
                                                }
-                                           }), dataExchange.getAppointmentsForRoomObservable(setting.getRoomId()))
+                                           }), dataExchange.getAppointmentsForRoomObservable(setting.getRoomId(), "Createstartlistener"))
                                                    .subscribeOn(Schedulers.newThread())
                                                    .observeOn(AndroidSchedulers.mainThread())
                                                    .last()
@@ -181,7 +181,7 @@ public class CreateAppointmentDialog extends AbstractDialog {
         TextView title = (TextView) dialogView.findViewById(R.id.dialogTitle);
         TextView titleInfoText = (TextView) dialogView.findViewById(R.id.dialogInfoText);
         ImageView image = (ImageView) dialogView.findViewById(R.id.dialogImage);
-        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonCancelDialog);
+        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonFinishDialog);
         LinearLayout timeRangeWrapper = (LinearLayout)dialogView.findViewById(R.id.timeRageWrapper);
 
 
@@ -205,7 +205,7 @@ public class CreateAppointmentDialog extends AbstractDialog {
         TextView title = (TextView) dialogView.findViewById(R.id.dialogTitle);
         TextView titleInfoText = (TextView) dialogView.findViewById(R.id.dialogInfoText);
         ImageView image = (ImageView) dialogView.findViewById(R.id.dialogImage);
-        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonCancelDialog);
+        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonFinishDialog);
         LinearLayout timeRangeWrapper = (LinearLayout)dialogView.findViewById(R.id.timeRageWrapper);
 
         cancelButton.setText(R.string.ok);

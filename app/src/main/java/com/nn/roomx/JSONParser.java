@@ -84,7 +84,6 @@ public class JSONParser {
 
     public List<Appointment> parseAppointmentsList(String response) throws JSONException {
         reader = new JSONObject(response);
-        Log.e("RoomX", "parsing appointments");
         JSONArray appointments = reader.getJSONArray("appointments");
 
         //Appointment.appointmentsExList.clear();

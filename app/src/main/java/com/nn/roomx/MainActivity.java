@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
@@ -17,6 +18,7 @@ import android.nfc.tech.Ndef;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Environment;
 import android.os.PowerManager;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -47,6 +49,11 @@ import com.nn.roomx.view.ViewHelper;
 import com.nn.roomx.view.CircularProgressBar;
 import com.nn.roomx.view.DialogueHelper;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
@@ -90,6 +97,7 @@ public class MainActivity extends Activity {
     private Subscription listenerModeSubscription;
     private Subscription appointmentListenerSub = null;
     private Subscription appConfigListenerSub = null;
+    private Subscription initAppointmentsDataSub = null;
     private Subscription inactiveDialoguMonitor;
     private Subscription createAppointmentActionSubscription;
     private List<Appointment> appointmentsList = new ArrayList<Appointment>();
@@ -131,7 +139,7 @@ public class MainActivity extends Activity {
         PendingIntent pending = PendingIntent.getBroadcast(this, 0, new Intent(this, RoomxBroadcastReceiver.class), 0);
 
         /* Schedule Alarm with and authorize to WakeUp the device during sleep */
-//        manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000 * 60 * 60 * 5, pending);
+///       manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000 * 60 * 60 * 5, pending);
         //   manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, pending);
 
 //        Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
@@ -205,7 +213,7 @@ public class MainActivity extends Activity {
     }
 
     private AlertDialog getRoomSelectionDialog(List<Room> rooms) {
-        Log.i("ROOMX", " getRoomSelectionDialog " );
+        Log.i("ROOMX", " getRoomSelectionDialog ");
 
 
         LayoutInflater layoutInflater = LayoutInflater.from(MainActivity.this);
@@ -233,7 +241,7 @@ public class MainActivity extends Activity {
                     dialogView.findViewById(R.id.passwordWrapper).setVisibility(View.INVISIBLE);
                     dialogView.findViewById(R.id.roomsWrapper).setVisibility(View.VISIBLE);
                 } else {
-                    Log.i("ROOMX", " getRoomSelectionDialog password wrong " );
+                    Log.i("ROOMX", " getRoomSelectionDialog password wrong ");
                     Toast.makeText(getApplicationContext(), R.string.wrong_admin_password, Toast.LENGTH_SHORT).show();
                 }
             }
@@ -293,7 +301,7 @@ public class MainActivity extends Activity {
 
     private void initAppointmentsData() {
         progress.show();
-        dataExchange.getAppointmentsForRoomObservable(getRoomId())
+        initAppointmentsDataSub = dataExchange.getAppointmentsForRoomObservable(getRoomId(), "Maininitappoinmentdata")
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<ServiceResponse>() {
@@ -303,6 +311,8 @@ public class MainActivity extends Activity {
                                    enableListenerMode();
                                    enableAppointmentsListerMode();
                                    progress.dismiss();
+                                   initAppointmentsDataSub.unsubscribe();
+                                   ;
                                }
                            },
 
@@ -313,6 +323,8 @@ public class MainActivity extends Activity {
                                 enableListenerMode();
                                 enableAppointmentsListerMode();
                                 handleTechnicalError(e.getMessage(), e);
+                                initAppointmentsDataSub.unsubscribe();
+                                ;
                             }
                         });
     }
@@ -345,6 +357,15 @@ public class MainActivity extends Activity {
 
     }
 
+    private void disableAppoConfigListener() {
+        Log.i(TAG, "disableAppoConfigListener " + appConfigListenerSub);
+        if (appConfigListenerSub != null) {
+            appConfigListenerSub.unsubscribe();
+            appConfigListenerSub = null;
+        }
+
+    }
+
     /**
      * Every x seconds checks app config
      */
@@ -356,7 +377,7 @@ public class MainActivity extends Activity {
                     .subscribe(new Action1<Object>() {
                                    @Override
                                    public void call(Object o) {
-                                       dataExchange.getAppointmentsForRoomObservable(getRoomId())
+                                       dataExchange.getAppConfig(getRoomId())
                                                .subscribeOn(Schedulers.newThread())
                                                .observeOn(AndroidSchedulers.mainThread())
                                                .doOnError(new Action1<Throwable>() {
@@ -367,8 +388,13 @@ public class MainActivity extends Activity {
                                                .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
                                                    @Override
                                                    public Observable<?> call(Observable<? extends Throwable> observable) {
-                                                       return Observable.timer(2000,
-                                                               TimeUnit.MILLISECONDS);
+                                                       return observable.flatMap(new Func1<Throwable, Observable<?>>() {
+                                                           @Override
+                                                           public Observable<?> call(Throwable throwable) {
+                                                               return Observable.timer(10000,
+                                                                       TimeUnit.MILLISECONDS);
+                                                           }
+                                                       });
                                                    }
                                                })
                                                .subscribe(new Action1<ServiceResponse>() {
@@ -404,9 +430,9 @@ public class MainActivity extends Activity {
      * Every x seconds checks meetings for room
      */
     private void enableAppointmentsListerMode() {
-        Log.i(TAG, "enableAppointmentsListerMode");
+        Log.i(TAG, "enableAppointmentsListerMode " + appointmentListenerSub + printStackTrace("enableAppointmentsListerMode"));
         if (appointmentListenerSub == null) {
-            appointmentListenerSub = Observable.interval(getAppointmentRefereshIntervalSeconds(), TimeUnit.SECONDS)
+            appointmentListenerSub = Observable.interval(0, getAppointmentRefereshIntervalSeconds(), TimeUnit.SECONDS)
                     .subscribeOn(Schedulers.newThread())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(new Action1<Object>() {
@@ -414,7 +440,7 @@ public class MainActivity extends Activity {
                                    public void call(Object o) {
                                        Log.i(TAG, "enableAppointmentsListerMode refersh " + this.toString());
                                        refreshAppointmentsProgress.show();
-                                       dataExchange.getAppointmentsForRoomObservable(getRoomId())
+                                       dataExchange.getAppointmentsForRoomObservable(getRoomId(), "Main activity enableAppointmentsListerMode")
                                                .subscribeOn(Schedulers.newThread())
                                                .observeOn(AndroidSchedulers.mainThread())
                                                .doOnError(new Action1<Throwable>() {
@@ -427,8 +453,14 @@ public class MainActivity extends Activity {
                                                .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
                                                    @Override
                                                    public Observable<?> call(Observable<? extends Throwable> observable) {
-                                                       return Observable.timer(2000,
-                                                               TimeUnit.MILLISECONDS);
+                                                       return observable.flatMap(new Func1<Throwable, Observable<?>>() {
+                                                           @Override
+                                                           public Observable<?> call(Throwable throwable) {
+                                                               Log.i(TAG, "retryWhen enableAppointmentsListerMode" + throwable);
+                                                               return Observable.timer(10000,
+                                                                       TimeUnit.MILLISECONDS);
+                                                           }
+                                                       });
                                                    }
                                                })
                                                .subscribe(new Action1<ServiceResponse<List<Appointment>>>() {
@@ -464,15 +496,31 @@ public class MainActivity extends Activity {
 
     }
 
+    private String printStackTrace(String param) {
+        try {
+            throw new RuntimeException(param);
+        } catch (Exception e) {
+            Log.e(RoomxUtils.TAG, e.getMessage(), e);
+            return "";
+        }
+    }
+
     private void refresAppointmentsView(ServiceResponse<List<Appointment>> serverResponse) {
+        Log.i(RoomxUtils.TAG, "Reffresh appointment view");
+
         try {
             if (serverResponse.isOK()) {
+                Log.i(RoomxUtils.TAG, "Reffresh appointment view response OK");
                 this.appointmentsList = serverResponse.getResponseObject();
                 this.currentAppointment = appointmentsList.get(0);
                 this.nextAppointment = null;
                 if (appointmentsList.size() > 1) {
                     this.nextAppointment = appointmentsList.get(1);
                 }
+
+                Log.i(RoomxUtils.TAG, "Reffresh appointment view currentAppointment " + currentAppointment);
+                Log.i(RoomxUtils.TAG, "Reffresh appointment view nextAppointment " + nextAppointment);
+
                 selectOnTimeLine(0);
                 setAppointmentsView();
                 refreshTimeLine();
@@ -534,7 +582,7 @@ public class MainActivity extends Activity {
                     public Observable<String> call(Long o) {
                         return Observable.just(o.toString());
                     }
-                }), dataExchange.getAppointmentsForRoomObservable(getRoomId()))
+                }), dataExchange.getAppointmentsForRoomObservable(getRoomId(), "main acitibyt checkIfAppointmentShouldBeCancelled"))
                         .subscribeOn(Schedulers.newThread())
                         .observeOn(AndroidSchedulers.mainThread())
                         .last()
@@ -604,8 +652,13 @@ public class MainActivity extends Activity {
 //        Intent i = getBaseContext().getPackageManager()
 //                .getLaunchIntentForPackage(getBaseContext().getPackageName());
 
+        disableAppointmentsListerMode();
+        disableListenerMode();
+        disableMonitorInactiveDialogue();
+        disableAppoConfigListener();
+
         Intent i = new Intent(this, MainActivity.class);
-        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_NEW_TASK);
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
 
         Log.i("ROOMX", "restart app " + i);
         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -641,9 +694,94 @@ public class MainActivity extends Activity {
 
         @Override
         public void onClick(View view) {
-            createAppointment(getCurrentAppointment());
+//            createAppointment(getCurrentAppointment());
+
+            Toast.makeText(MainActivity.this, "Upate APP", Toast.LENGTH_SHORT).show();
+            DownloadAppService das = new DownloadAppService(MainActivity.this);
+            das.updateApp().subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(new Action1<Object>() {
+                                   @Override
+                                   public void call(Object o) {
+                                       String destination = Environment.getExternalStorageDirectory() + "/";
+                                       String fileName = "";
+                                       destination += "update1.apk";
+
+                                       File file = new File(destination);
+
+
+                                       Log.i(RoomxUtils.TAG, "Upate APP call " + file.getAbsolutePath());
+
+
+//                                       Intent intent = new Intent(Intent.ACTION_VIEW);
+//                                       intent.setDataAndType(Uri.fromFile(file),
+//                                               "application/vnd.android.package-archive");
+//                                       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//                                       startActivity(intent);
+
+                                       Log.i(RoomxUtils.TAG, "=============================================");
+                                       Toast.makeText(MainActivity.this, "Upate APP" + "=============================================", Toast.LENGTH_SHORT).show();
+
+                                       AlarmManager manager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+        /* Create the PendingIntent that will launch the BroadcastReceiver */
+                                       PendingIntent pending = PendingIntent.getBroadcast(MainActivity.this, 0, new Intent(MainActivity.this, RoomxBroadcastReceiver.class), 0);
+
+        /* Schedule Alarm with and authorize to WakeUp the device during sleep */
+
+                                       manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000 * 5, pending);
+
+                                       try {
+                                           String line = null;
+//                                           String command = "pm install -r " + file.getAbsolutePath() + ";am start -n com.nn.roomx/com.nn.roomx.MainActivity";
+                                           String commandRestart = "start -a android.intent.action.MAIN -n com.nn.roomx/com.nn.roomx.MainActivity";
+                                           String commandInstall = "pm install -r " + file.getAbsolutePath();
+                                           String command = "reboot now";
+
+
+                                           Process proc1 = Runtime.getRuntime().exec(new String[]{"su", "-c", commandInstall});
+                                           InputStream stdin = proc1.getInputStream();
+                                           InputStreamReader isr = new InputStreamReader(stdin);
+                                           BufferedReader br = new BufferedReader(isr);
+
+                                           while ((line = br.readLine()) != null)
+                                               Log.i(RoomxUtils.TAG, "OUTPUT " + line);
+                                           int i = proc1.waitFor();
+                                           Log.i(RoomxUtils.TAG, "APP updated " + "Process exitValue: " + i);
+
+//                                           Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", command});
+//                                           Log.i(RoomxUtils.TAG, "APP updated " + file.getAbsolutePath());
+//                                           Toast.makeText(MainActivity.this, "Upate APP" + "APP updated " + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+//
+//                                           stdin = proc.getInputStream();
+//                                           isr = new InputStreamReader(stdin);
+//                                           br = new BufferedReader(isr);
+//
+//
+//                                           while ((line = br.readLine()) != null)
+//                                               Log.i(RoomxUtils.TAG, "OUTPUT " + line);
+//
+//
+//                                           int exitVal = proc.waitFor();
+//                                           Log.i(RoomxUtils.TAG, "APP updated " + "Process exitValue: " + exitVal);
+
+                                       } catch (Exception e) {
+                                           System.out.println(e.toString());
+                                           System.out.println("no root");
+                                       }
+
+                                   }
+                               },
+
+                            new Action1<Throwable>() {
+                                public void call(Throwable e) {
+
+                                    Log.i(RoomxUtils.TAG, "Upate APP error call");
+                                }
+                            });
         }
     };
+
 
     private void hideProgressDialog() {
         this.progress.hide();
@@ -674,7 +812,7 @@ public class MainActivity extends Activity {
 
     private void monitorInactiveDialogue() {
 
-        if(this.inactiveDialoguMonitor == null) {
+        if (this.inactiveDialoguMonitor == null) {
             this.inactiveDialoguMonitor = Observable.just("").delay(settingsRoomx.getMonitoriInactiveDialogueSeconds(), TimeUnit.SECONDS)// interval(settingsRoomx.getMonitoriInactiveDialogueSeconds(), TimeUnit.SECONDS)
                     .subscribeOn(Schedulers.newThread())
                     .observeOn(AndroidSchedulers.mainThread())
@@ -921,12 +1059,12 @@ public class MainActivity extends Activity {
 
     private void handleBusinessErrorToast(String message) {
         Log.i(TAG, "handle communication error " + message);
-        Toast.makeText(this, getResources().getString(R.string.communication_error) + message, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, getResources().getString(R.string.communication_error) + message, Toast.LENGTH_SHORT).show();
     }
 
     private void handleTechnicalError(String msg, Throwable e) {
         Log.e(TAG, "handle communication error " + msg, e);
-        Toast.makeText(this, getResources().getString(R.string.communication_error) + msg, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, getResources().getString(R.string.communication_error) + msg, Toast.LENGTH_SHORT).show();
         dataExchange.getCreateErrorReportObservable(getRoomId(), msg, e)
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -944,10 +1082,12 @@ public class MainActivity extends Activity {
     }
 
     private void setAppointmentsView() {
+        Log.i(TAG, " setAppointmentsView ");
         Appointment active = getCurrentAppointment();
 
         //next appointment availbe for action
-        if (nextAppointment != null && nextAppointment.isAvailableForActioin(settingsRoomx.getAppointmentReadyForActionBofreStartMinutes())) {
+        if (nextAppointment != null && !nextAppointment.isVirtual() && nextAppointment.isAvailableForActioin(settingsRoomx.getAppointmentReadyForActionBofreStartMinutes())) {
+            Log.i(TAG, " setAppointmentsView setBusyRoomReadyForActionNextMeeting");
             ViewHelper.setBusyRoomReadyForActionNextMeeting(this, currentAppointment, nextAppointment, getCancelButtonListener(nextAppointment), getConfirmButtonListener(nextAppointment));
             int diff = (int) (nextAppointment.getStart().getTime() - new Date().getTime()) / 1000;
             startTimers(diff);
@@ -961,10 +1101,12 @@ public class MainActivity extends Activity {
 
         if (active.isVirtual()) {
             ViewHelper.setFreeRoomView(this, buttonCreateListener, nextAppointment);
+            Log.i(TAG, " setAppointmentsView setFreeRoomView");
         } else {
             ViewHelper.setBusyRoomView(this, buttonFinishListener, getCancelButtonListener(currentAppointment), getConfirmButtonListener(currentAppointment), active);
-            if(!currentAppointment.isConfirmed()){
-                diff = (int) (currentAppointment.getStart().getTime() + settingsRoomx.getCancelMinuteShift()  * 60 * 1000 - new Date().getTime())/1000;
+            Log.i(TAG, " setAppointmentsView setBusyRoomView");
+            if (!currentAppointment.isConfirmed()) {
+                diff = (int) (currentAppointment.getStart().getTime() + settingsRoomx.getCancelMinuteShift() * 60 * 1000 - new Date().getTime()) / 1000;
             }
         }
 
@@ -1017,7 +1159,8 @@ public class MainActivity extends Activity {
 
             @Override
             public void onFinish() {
-
+                disableAppointmentsListerMode();
+                enableAppointmentsListerMode();
             }
         }.start();
 

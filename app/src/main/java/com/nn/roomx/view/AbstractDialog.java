@@ -7,6 +7,7 @@ import android.graphics.Point;
 import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,7 +18,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.nn.roomx.DataExchange;
 import com.nn.roomx.MainActivity;
@@ -83,6 +83,7 @@ public abstract class  AbstractDialog  extends Dialog{
             }
         }.start();
 
+        setCancelable(false);
 
     }
 
@@ -98,6 +99,17 @@ public abstract class  AbstractDialog  extends Dialog{
         lp.width = (int) (width * 0.9);
         lp.height = (int) (height * 0.9);
         this.getWindow().setAttributes(lp);
+
+        initCaptchaButton();
+
+//        Button finishButton = (Button) dialogView.findViewById(R.id.buttonFinishDialog);
+//        finishButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Log.i(RoomxUtils.TAG, "finish dialog clicked");
+//                callback.onFinish();
+//            }
+//        });
 
         //TODO: remove
         TextView viewById = (TextView) dialogView.findViewById(R.id.dialogTitle);
@@ -118,11 +130,31 @@ public abstract class  AbstractDialog  extends Dialog{
 
     }
 
+    protected void initCaptchaButton(){
+        ImageView captchaButton = (ImageView) dialogView.findViewById(R.id.confirmCapcha);
+
+        if(captchaButton == null){
+            return;
+        }
+
+        captchaButton.setClickable(true);
+        captchaButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                initCaptchLayout();
+            }
+        });
+    }
+
+    protected void initCaptchLayout(){
+
+    }
+
     protected void showError(String titleText, String subbtilteText) {
         TextView title = (TextView) dialogView.findViewById(R.id.dialogTitle);
         TextView titleInfoText = (TextView) dialogView.findViewById(R.id.dialogInfoText);
         ImageView image = (ImageView) dialogView.findViewById(R.id.dialogImage);
-        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonCancelDialog);
+        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonFinishDialog);
 
         cancelButton.setText(R.string.ok);
         cancelButton.setBackgroundColor(getContext().getResources().getColor(R.color.create_button));
@@ -138,7 +170,10 @@ public abstract class  AbstractDialog  extends Dialog{
         TextView title = (TextView) dialogView.findViewById(R.id.dialogTitle);
         TextView titleInfoText = (TextView) dialogView.findViewById(R.id.dialogInfoText);
         ImageView image = (ImageView) dialogView.findViewById(R.id.dialogImage);
-        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonCancelDialog);
+        Button cancelButton = (Button) dialogView.findViewById(R.id.buttonFinishDialog);
+        LinearLayout dialogImageWrapper = (LinearLayout) dialogView.findViewById(R.id.dialogImageWrapper);
+        dialogImageWrapper.setGravity(Gravity.CENTER);
+        dialogImageWrapper.removeView(dialogView.findViewById(R.id.confirmCapcha));
 
         cancelButton.setText(R.string.ok);
         cancelButton.setBackgroundColor(getContext().getResources().getColor(R.color.create_button));
@@ -147,6 +182,8 @@ public abstract class  AbstractDialog  extends Dialog{
         title.setText(titleText);
         titleInfoText.setText(subbtilteText);
         image.setImageResource(R.drawable.dialog_action_success);
+
+
 
     }
 

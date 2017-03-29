@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Environment;
+import android.util.Base64;
 import android.util.Log;
 
 import com.nn.roomx.ObjClasses.Room;
@@ -45,11 +46,15 @@ public class DownloadAppService {
             public void call(Subscriber<? super String> subscriber) {
 
                 try {
-                    Log.i(RoomxUtils.TAG,  "download apk");
+                    Log.i(RoomxUtils.TAG,  "----------------download apk------------------");
                     //URL url = new URL("http://192.168.100.102:8080/app-debug.apk");
-                    URL url = new URL("http://192.168.100.102:8080/MeetProxy/services/app/download");
+                    URL url = new URL("http://192.168.100.103:8080/MeetProxy/services/app/download");
                     HttpURLConnection c = (HttpURLConnection) url.openConnection();
 
+
+                    String basicAuth = "Basic " + Base64.encodeToString("user:user".getBytes(), Base64.NO_WRAP);
+
+                    c.setRequestProperty ("Authorization", basicAuth);
                     c.setRequestMethod("GET");
                     c.connect();
 
@@ -59,7 +64,7 @@ public class DownloadAppService {
 
                     File file = new File(destination);
                     file.mkdirs();
-                    File outputFile = new File(file, "update.apk");
+                    File outputFile = new File(file, "update1.apk");
                     if (outputFile.exists()) {
                         outputFile.delete();
                     }
@@ -68,7 +73,7 @@ public class DownloadAppService {
                     InputStream is = c.getInputStream();
 
                     byte[] buffer = new byte[1024];
-                    Log.i(RoomxUtils.TAG,  "download apk");
+                    Log.i(RoomxUtils.TAG,  "+++++++++++++++++++download apk");
                     int len1 = 0;
                     while ((len1 = is.read(buffer)) != -1) {
                         fos.write(buffer, 0, len1);
@@ -77,16 +82,19 @@ public class DownloadAppService {
                     is.close();
 
 
-                    Log.i("Roomx", outputFile.getAbsolutePath());
+                    Log.i(RoomxUtils.TAG, "================================= " + outputFile.getAbsolutePath());
 
                     subscriber.onNext("ÖK");
 
                 } catch (ProtocolException e) {
-                    e.printStackTrace();
+                    Log.e(RoomxUtils.TAG, e.getMessage(), e);
+                    subscriber.onError(e);
                 } catch (MalformedURLException e) {
-                    e.printStackTrace();
+                    Log.e(RoomxUtils.TAG, e.getMessage(), e);
+                    subscriber.onError(e);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    Log.e(RoomxUtils.TAG, e.getMessage(), e);
+                    subscriber.onError(e);
                 }
             }
         });

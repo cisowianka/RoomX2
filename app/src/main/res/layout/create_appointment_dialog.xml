@@ -255,7 +255,7 @@
         android:orientation="vertical">
 
         <Button
-            android:id="@+id/buttonCancelDialog"
+            android:id="@+id/buttonFinishDialog"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="0.2"

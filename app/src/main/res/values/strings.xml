@@ -19,7 +19,10 @@
     <string name="appointment_will_start_in">Spotkanie rozpocznie się za:</string>
     <string name="room_is_free_for">Salka jest wolna przez:</string>
     <string name="appointment_ends_in">Spotaknie kończy się za:</string>
+    <!--
     <string name="room_is_available_for_booking">TA SALKA CZEKA NA TWOJĄ REZERWACJĘ</string>
+    -->
+    <string name="room_is_available_for_booking">TA SALKA CZEKA NA TWOJĄ REZERWACJĘ !!!cdef</string>
     <string name="appointment_in_progress">TRWA SPOTKANIE</string>
     <string name="waiting_for_confirmation">OCZEKIWANIE NA POTWIERDZENIE</string>
     <string name="appointment_confirmed">SPOTKANIE POTWIERDZONE</string>
@@ -35,4 +38,7 @@
     <string name="confirm_presence">Potwierdź obecność</string>
     <string name="confirm_appointment">POTWIERDŹ SPOTKANIE</string>
     <string name="confirm_appointment_info">Aby potwierdzić przybycie na spotkanie zbliż kartę do czytnika NFC znajdującego się po prawej stronie ekranu.</string>
+    <string name="confirm_without_nfccard">POTWIERDZANIE SPOTKANIA BEZ KARTY</string>
+    <string name="captch_game_intro">Jeśli nie posiadasz karty zagrajmy w grę...</string>
+    <string name="captch_rule">Wskaż wszystkie obrazki zawierające samochód.</string>
 </resources>

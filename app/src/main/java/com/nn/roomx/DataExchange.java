@@ -86,14 +86,24 @@ public class DataExchange {
     }
 
 
-    public Observable<ServiceResponse<List<Appointment>>> getAppointmentsForRoomObservable(final String roomId) {
+    public Observable<ServiceResponse<List<Appointment>>> getAppointmentsForRoomObservable(final String roomId, final String source) {
+        try {
+            Log.i(TAG, "+++++++++++++ " + source + " getAppointmentsForRoomObservable " + roomId);
+//                        throw new RuntimeException(source + " get room appointments " + roomId);
+        }catch(Exception e){
+            Log.e(TAG, e.getMessage(), e);
+        }
         return Observable.create(new Observable.OnSubscribe<ServiceResponse<List<Appointment>>>() {
             @Override
             public void call(Subscriber<? super ServiceResponse<List<Appointment>>> subscriber) {
                 ServiceResponse<List<Appointment>> response = new ServiceResponse<List<Appointment>>();
                 try {
-                    Log.i(TAG, "get room appointments " + roomId);
-
+                    try {
+                        Log.i(TAG, "___________________ " + source + " get room appointments " + roomId);
+//                        throw new RuntimeException(source + " get room appointments " + roomId);
+                    }catch(Exception e){
+//                        Log.e(TAG, e.getMessage(), e);
+                    }
                     String urlGet = url + "/MeetProxy/services/appointment?" + addParamToURL("room", roomId);
                     String respString = downloadUrl(new URL(urlGet));
                     response.ok();
@@ -103,8 +113,8 @@ public class DataExchange {
 //                    response.setEvents(new ArrayList<Event>());
 //                    response.setProperties(new ArrayList<SystemProperty>());
                     response.setResponseObject(jsonparser.parseAppointmentsList(respString));
-                    response.setEvents(jsonparser.parseEvents(respString));
-                    response.setProperties(jsonparser.parseSystemProperties(respString));
+//                    response.setEvents(jsonparser.parseEvents(respString));
+//                    response.setProperties(jsonparser.parseSystemProperties(respString));
 
                     subscriber.onNext(response); // Emit the contents of the URL
                     subscriber.onCompleted(); // Nothing more to emit
@@ -124,9 +134,9 @@ public class DataExchange {
             public void call(Subscriber<? super ServiceResponse<List<Appointment>>> subscriber) {
                 ServiceResponse<List<Appointment>> response = new ServiceResponse<List<Appointment>>();
                 try {
-                    Log.i(TAG, "get room appointments " + roomId);
+                    Log.i(TAG, "getAppConfig " + roomId);
 
-                    String urlGet = url + "/MeetProxy/app/config?" + addParamToURL("room", roomId);
+                    String urlGet = url + "/MeetProxy/services/app/config?" + addParamToURL("room", roomId);
                     String respString = downloadUrl(new URL(urlGet));
                     response.ok();
 
@@ -136,6 +146,7 @@ public class DataExchange {
                     subscriber.onNext(response);
                     subscriber.onCompleted();
                 } catch (Exception e) {
+                    Log.e(TAG, e.getMessage(), e);
                     response.fail();
                     response.setMessage(e.getMessage());
                     e.printStackTrace();
@@ -354,9 +365,9 @@ public class DataExchange {
         try {
             connection = (HttpURLConnection) url.openConnection();
 
-            connection.setReadTimeout(3000);
+            connection.setReadTimeout(10000);
 
-            connection.setConnectTimeout(3000);
+            connection.setConnectTimeout(10000);
 
             connection.setRequestMethod("POST");
 

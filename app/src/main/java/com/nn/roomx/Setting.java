@@ -17,8 +17,10 @@ public class Setting {
 
     private static final String NO_ROOM = "NO_ROOM";
     private static final int APPOINTMENT_CHECK_INTERVAL_SECONDS_DEFAULT = 15;
-    private static final int APPOINTMENT_CANCEL_MINUTE_SHIFT = 15;
-    private static final int APPOINTMENT_READY_FOR_ACTION_BEFORE_START_MINUTES = 5;
+
+
+    private static final int APPOINTMENT_CANCEL_MINUTE_SHIFT = 15; //15
+    private static final int APPOINTMENT_READY_FOR_ACTION_BEFORE_START_MINUTES = 5; //5
 
     private String roomId;
     private String password = "a";
@@ -27,7 +29,8 @@ public class Setting {
     private int cancelMinuteShift = APPOINTMENT_CANCEL_MINUTE_SHIFT;
     private int monitoriInactiveDialogueSeconds = 60;
 //    private String serverAddress = "http://192.168.100.106:8080";
-    private String serverAddress = "http://192.168.100.106:8080";
+    private String serverAddress = "http://192.168.100.103:8080";
+//private String serverAddress = "http://192.168.103.100:8080";
     private int appointmentReadyForActionBofreStartMinutes = APPOINTMENT_READY_FOR_ACTION_BEFORE_START_MINUTES;
     private long exchangeActionWaitSeconds = 5;
 
