@@ -1,6 +1,7 @@
 package com.nn.roomx;
 
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
@@ -17,6 +18,8 @@ import com.nn.roomx.ObjClasses.SystemProperty;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -26,8 +29,12 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -35,7 +42,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -47,16 +59,55 @@ public class DataExchange {
 
     private static final String TAG = "RoomX_Data_Exchange";
     private String url;
+    private String userPass = "";
+    private String apkName = "";
+    private String appVersion = "";
 
     RequestParams params = new RequestParams();
     SyncHttpClient client = new SyncHttpClient();
     JSONParser jsonparser = new JSONParser();
 
-    public DataExchange() {
+    private void trustAll() {
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() {
+                            X509Certificate[] myTrustedAnchors = new X509Certificate[0];
+                            return myTrustedAnchors;
+                        }
+
+                        @Override
+                        public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                        }
+
+                        @Override
+                        public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                        }
+                    }
+            };
+
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+            HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(String arg0, SSLSession arg1) {
+                    return true;
+                }
+            });
+        } catch (Exception e) {
+        }
+
     }
+
+
 
     public DataExchange(Setting settingsRoomx) {
         this.url = settingsRoomx.getServerAddress();
+        this.userPass = settingsRoomx.getUserPass();
+        this.apkName = settingsRoomx.getApkName();
+        this.appVersion = settingsRoomx.getAppVersion();
+        trustAll();
     }
 
     public Observable<ServiceResponse<List<Room>>> getRoomListObservable() {
@@ -67,7 +118,7 @@ public class DataExchange {
                 try {
                     Log.i(TAG, "get rooms ");
 
-                    String urlGet = url + "/MeetProxy/services/appointment/roomList";
+                    String urlGet = url + "/services/appointment/roomList";
                     String respString = downloadUrl(new URL(urlGet));
                     List<Room> rooms = jsonparser.parseRoomList(respString);
                     response.ok();
@@ -104,7 +155,7 @@ public class DataExchange {
                     }catch(Exception e){
 //                        Log.e(TAG, e.getMessage(), e);
                     }
-                    String urlGet = url + "/MeetProxy/services/appointment?" + addParamToURL("room", roomId);
+                    String urlGet = url + "/services/appointment?" + addParamToURL("room", roomId) + "&" + addParamToURL("version", DataExchange.this.appVersion);
                     String respString = downloadUrl(new URL(urlGet));
                     response.ok();
 
@@ -134,9 +185,9 @@ public class DataExchange {
             public void call(Subscriber<? super ServiceResponse<List<Appointment>>> subscriber) {
                 ServiceResponse<List<Appointment>> response = new ServiceResponse<List<Appointment>>();
                 try {
-                    Log.i(TAG, "getAppConfig " + roomId);
+                    Log.i(TAG, "=================================getAppConfig " + roomId);
 
-                    String urlGet = url + "/MeetProxy/services/app/config?" + addParamToURL("room", roomId);
+                    String urlGet = url + "/services/app/config?" + addParamToURL("room", roomId) + "&" + addParamToURL("version", DataExchange.this.appVersion);
                     String respString = downloadUrl(new URL(urlGet));
                     response.ok();
 
@@ -225,9 +276,13 @@ public class DataExchange {
                 String end = formatter.format(endDate);
                 try {
                     Log.i(TAG, "create appointemnt  " + roomId + " " + userId + " " + subject);
-                    String urlGet = url + "/MeetProxy/services/appointment/create?" + addParamToURL("roomID", roomId) + "&" + addParamToURL("memberID", userId) + "&" + addParamToURL("subject", subject) + "&" + addParamToURL("start", start) + "&" + addParamToURL("end", end);
+                    String urlGet = url + "/services/appointment/create?" + addParamToURL("roomID", roomId) + "&" + addParamToURL("memberID", userId) + "&" + addParamToURL("subject", subject) + "&" + addParamToURL("start", start) + "&" + addParamToURL("end", end);
                     String respString = downloadUrl(new URL(urlGet));
-                    response.ok();
+
+                    Log.i(TAG, "create appointemnt JSON  " + respString);
+
+                    response = jsonparser.parseBaseResponse(respString);
+
                     response.setResponseObject(true);
                     subscriber.onNext(response);
                     subscriber.onCompleted();
@@ -253,10 +308,10 @@ public class DataExchange {
                     PrintWriter pw = new PrintWriter(sw);
                     stacktrace.printStackTrace(pw);
 
-                    String postData = addParamToURL("roomID", roomId) + "&" + addParamToURL("msg", msg) + "&" + addParamToURL("stackTrace", sw.toString());
-                    Log.i(TAG, "Post data error " + postData);
+                    String postData = addParamToURL("roomID", roomId) + "&" + addParamToURL("msg", msg) + "&" + addParamToURL("stackTrace", sw.toString()) + "&" + addParamToURL("version", DataExchange.this.appVersion);
 
-                    String urlGet = url + "/MeetProxy/services/appointment/error";
+
+                    String urlGet = url + "/services/appointment/error";
                     String respString = postURL(new URL(urlGet), postData);
                     response.ok();
                     response.setResponseObject(true);
@@ -281,7 +336,7 @@ public class DataExchange {
                 ServiceResponse<Boolean> response = new ServiceResponse<Boolean>();
                 String urlGet = "";
                 try {
-                    urlGet = url + "/MeetProxy/services/appointment/confirm?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", meetingId);
+                    urlGet = url + "/services/appointment/confirm?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", meetingId);
                     String respString = downloadUrl(new URL(urlGet));
                     response = jsonparser.parseBaseResponse(respString);
 
@@ -308,7 +363,7 @@ public class DataExchange {
                 ServiceResponse<Boolean> response = new ServiceResponse<Boolean>();
                 String urlGet = "";
                 try {
-                    urlGet = url + "/MeetProxy/services/appointment/cancel?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", appointmentID);
+                    urlGet = url + "/services/appointment/cancel?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", appointmentID);
                     String respString = downloadUrl(new URL(urlGet));
                     response = jsonparser.parseBaseResponse(respString);
 
@@ -336,8 +391,7 @@ public class DataExchange {
                 ServiceResponse<Boolean> response = new ServiceResponse<Boolean>();
                 String urlGet = "";
                 try {
-                    urlGet = url + "/MeetProxy/services/appointment/finish?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", meetingId);
-                    Log.i(RoomxUtils.TAG, "----------------- finish " + urlGet);
+                    urlGet = url + "/services/appointment/finish?" + addParamToURL("memberID", userId) + "&" + addParamToURL("appointmentID", meetingId);
                     String respString = downloadUrl(new URL(urlGet));
                     response = jsonparser.parseBaseResponse(respString);
 
@@ -355,15 +409,77 @@ public class DataExchange {
 
             }
         });
+    }
+
+    public Observable<String> getUpdateAppObservable(final String room) {
+
+        return Observable.create(new Observable.OnSubscribe<String>() {
+            @Override
+            public void call(Subscriber<? super String> subscriber) {
+
+                String urlDownload = "";
+                try {
+                    Log.i(RoomxUtils.TAG,  "----------------download apk------------------" + room);
+                    urlDownload = url + "/services/app/download?" + addParamToURL("room", room);
+
+                    URL url = new URL(urlDownload);
+                    HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+                    setHostnameVerifier(connection);
+                    String basicAuth = "Basic " + Base64.encodeToString(DataExchange.this.userPass.getBytes(), Base64.NO_WRAP);
+                    connection.setRequestProperty ("Authorization", basicAuth);
+                    connection.setRequestMethod("GET");
+                    connection.connect();
+
+                    String destination = Environment.getExternalStorageDirectory() + "/";
+                    String fileName = "";
+                    destination += fileName;
+
+                    File file = new File(destination);
+                    file.mkdirs();
+                    File outputFile = new File(file, DataExchange.this.apkName);
+                    if (outputFile.exists()) {
+                        outputFile.delete();
+                    }
+                    FileOutputStream fos = new FileOutputStream(outputFile);
+
+                    InputStream is = connection.getInputStream();
+
+                    byte[] buffer = new byte[1024];
+                    int len1 = 0;
+                    while ((len1 = is.read(buffer)) != -1) {
+                        fos.write(buffer, 0, len1);
+                    }
+                    fos.close();
+                    is.close();
+
+                    subscriber.onNext("ÖK");
+
+                } catch (ProtocolException e) {
+                    Log.e(RoomxUtils.TAG, e.getMessage(), e);
+                    subscriber.onError(e);
+                } catch (MalformedURLException e) {
+                    Log.e(RoomxUtils.TAG, e.getMessage(), e);
+                    subscriber.onError(e);
+                } catch (IOException e) {
+                    Log.e(RoomxUtils.TAG, e.getMessage(), e);
+                    subscriber.onError(e);
+                }
+            }
+        });
+
 
     }
 
     private String postURL(URL url, String postData) throws IOException {
         InputStream stream = null;
-        HttpURLConnection connection = null;
+        HttpsURLConnection connection = null;
         String result = null;
         try {
-            connection = (HttpURLConnection) url.openConnection();
+            String basicAuth = "Basic " + Base64.encodeToString(this.userPass.getBytes(), Base64.NO_WRAP);
+            connection = (HttpsURLConnection) url.openConnection();
+            connection.setRequestProperty ("Authorization", basicAuth);
+
+            setHostnameVerifier(connection);
 
             connection.setReadTimeout(10000);
 
@@ -403,13 +519,32 @@ public class DataExchange {
         return result;
     }
 
+    private void setHostnameVerifier(HttpsURLConnection connection){
+
+        HostnameVerifier hostnameVerifier = new HostnameVerifier() {
+            @Override
+            public boolean verify(String hostname, SSLSession session) {
+                HostnameVerifier hv =
+                        HttpsURLConnection.getDefaultHostnameVerifier();
+                return true;
+            }
+        };
+        connection.setHostnameVerifier(hostnameVerifier);
+
+    }
+
     private String downloadUrl(URL url) throws IOException {
         InputStream stream = null;
-        HttpURLConnection connection = null;
+        HttpsURLConnection connection = null;
         String result = null;
         try {
-            String basicAuth = "Basic " + Base64.encodeToString("user:user".getBytes(), Base64.NO_WRAP);
-            connection = (HttpURLConnection) url.openConnection();
+
+            String basicAuth = "Basic " + Base64.encodeToString(this.userPass.getBytes(), Base64.NO_WRAP);
+            connection =
+                    (HttpsURLConnection)url.openConnection();
+
+            setHostnameVerifier(connection);
+
             connection.setRequestProperty ("Authorization", basicAuth);
 
             connection.setReadTimeout(10000);

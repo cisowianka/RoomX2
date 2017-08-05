@@ -20,4 +20,5 @@
     <color name="orange">#EE7100</color>
     <color name="grayTextColor">#666666</color>
     <color name="timeline_gray">#e4e4e4</color>
+    <color name="out_of_service">#ee7100</color>
 </resources>

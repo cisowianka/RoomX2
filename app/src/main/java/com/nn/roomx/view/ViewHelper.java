@@ -2,6 +2,7 @@ package com.nn.roomx.view;
 
 import android.app.Activity;
 import android.content.Context;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +14,9 @@ import com.nn.roomx.MainActivity;
 import com.nn.roomx.ObjClasses.Appointment;
 import com.nn.roomx.R;
 import com.nn.roomx.RoomxUtils;
+import com.nn.roomx.Setting;
+
+import java.util.Date;
 
 /**
  * Created by user on 2017-01-17.
@@ -22,6 +26,15 @@ public class ViewHelper {
 
 
     public static void setFreeRoomView(Activity ctx, View.OnClickListener buttonCreateListener, Appointment nextAppointment) {
+
+        final Setting settings = new Setting(PreferenceManager.getDefaultSharedPreferences(ctx.getApplicationContext()));
+        settings.init();
+
+        boolean roomCanBeBooked = true;
+        if (nextAppointment != null && RoomxUtils.getDateFromStartPlusShift(new Date(), settings.getMinSlotTimeMinutes()).after(nextAppointment.getStart())) {
+            roomCanBeBooked = false;
+        }
+
         View roomHeader = ctx.findViewById(R.id.header);
         TextView tVhost = (TextView) ctx.findViewById(R.id.appointmentHostText);
         TextView hostLabel = (TextView) ctx.findViewById(R.id.appointmentHostLabel);
@@ -37,8 +50,13 @@ public class ViewHelper {
         appointmentTime.setText("");
         roomStatus.setText("");
 
+
         timerText.setText(ctx.getResources().getString(R.string.room_is_free_for));
-        appointmentTitle.setText(ctx.getResources().getString(R.string.room_is_available_for_booking));
+        if (roomCanBeBooked) {
+            appointmentTitle.setText(ctx.getResources().getString(R.string.room_is_available_for_booking));
+        } else {
+            appointmentTitle.setText(ctx.getResources().getString(R.string.room_is_free));
+        }
 
         roomHeader.setBackgroundColor(ctx.getResources().getColor(R.color.freeRoom));
 
@@ -69,8 +87,11 @@ public class ViewHelper {
         LinearLayout wrapper = (LinearLayout) ctx.findViewById(R.id.buttonsWrapper);
         wrapper.setOrientation(LinearLayout.VERTICAL);
         wrapper.removeAllViews();
-        wrapper.addView(textViewDummy);
-        wrapper.addView(button);
+
+        if (roomCanBeBooked) {
+            wrapper.addView(textViewDummy);
+            wrapper.addView(button);
+        }
 
     }
 
@@ -136,7 +157,7 @@ public class ViewHelper {
             wrapper.addView(finishButton);
         } else {
             //not confirmed
-            if(!currentAppointment.isConfirmed()) {
+            if (!currentAppointment.isConfirmed()) {
                 timerText.setText("Spotkanie zostanie automatycznie anulowane za:");
                 appointmentTitle.setText("OCZEKIWANIE NA POTWIERDZENIE");
             }

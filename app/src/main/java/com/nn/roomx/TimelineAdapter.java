@@ -1,6 +1,7 @@
 package com.nn.roomx;
 
 import android.content.Context;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,11 +25,14 @@ public class TimelineAdapter extends ArrayAdapter<Appointment> {
 
     private final Context context;
     private final List<Appointment> values;
+    private Setting settings;
 
     public TimelineAdapter(Context context, List<Appointment> values) {
         super(context, R.layout.timeline_row, values);
         this.context = context;
         this.values = values;
+        settings = new Setting(PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext()));
+        settings.init();
     }
 
     @Override
@@ -65,6 +69,11 @@ public class TimelineAdapter extends ArrayAdapter<Appointment> {
         if (appointment.isVirtual()) {
              rowView.findViewById(R.id.nonVirtualWrapper).setVisibility(View.GONE);
             appointmentStub.setBackgroundColor(context.getResources().getColor(R.color.timeline_gray));
+            View plusButton = rowView.findViewById(R.id.addAppointmentPlusButton);
+            if (!appointment.slotAvailableForReservation(settings.getMinSlotTimeMinutes())) {
+                plusButton.setVisibility(View.GONE);
+            }
+
         } else {
             rowView.findViewById(R.id.virtualWrapper).setVisibility(View.GONE);
 
@@ -104,6 +113,10 @@ public class TimelineAdapter extends ArrayAdapter<Appointment> {
             if(appointment.isVirtual()){
                 selectedRowPointer.setBackground(context.getResources().getDrawable(R.drawable.virtual_appointment_selected_time_line_row));
                 appointmentStub.setBackgroundColor(context.getResources().getColor(R.color.timeline_gray));
+                View plusButton = appointmentStub.findViewById(R.id.addAppointmentPlusButton);
+                if (!appointment.slotAvailableForReservation(settings.getMinSlotTimeMinutes())) {
+                    plusButton.setVisibility(View.GONE);
+                }
             }else{
                 appointmentStub.setBackgroundColor(context.getResources().getColor(R.color.orange));
                 selectedRowPointer.setBackground(context.getResources().getDrawable(R.drawable.appointment_selected_time_line_row));

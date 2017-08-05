@@ -139,6 +139,7 @@
             <ImageView
                 android:layout_width="70sp"
                 android:layout_height="70sp"
+                android:id="@+id/addAppointmentPlusButton"
                 android:src="@drawable/plus_button" />
 
 

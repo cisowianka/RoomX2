@@ -22,10 +22,11 @@
     <!--
     <string name="room_is_available_for_booking">TA SALKA CZEKA NA TWOJĄ REZERWACJĘ</string>
     -->
-    <string name="room_is_available_for_booking">TA SALKA CZEKA NA TWOJĄ REZERWACJĘ !!!cdef</string>
+    <string name="room_is_available_for_booking">TA SALKA CZEKA NA TWOJĄ REZERWACJĘ</string>
     <string name="appointment_in_progress">TRWA SPOTKANIE</string>
     <string name="waiting_for_confirmation">OCZEKIWANIE NA POTWIERDZENIE</string>
     <string name="appointment_confirmed">SPOTKANIE POTWIERDZONE</string>
+    <string name="room_is_free">SALKA JEST WOLNA</string>
     <string name="room_is_free_to">wolna do </string>
     <string name="room_is_busy_to">zajęta do </string>
     <string name="create_appointment">Wybierz oczekiwane godziny spotkaniai potwierdź zbliżając swoją kartę do czytnika NFC znajdującego się po lewej stronie.</string>

@@ -5,21 +5,18 @@ import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.app.admin.DevicePolicyManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.net.Uri;
-import android.nfc.NdefMessage;
-import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
-import android.nfc.Tag;
-import android.nfc.tech.Ndef;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.PowerManager;
+import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -31,6 +28,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -42,26 +40,23 @@ import com.nn.roomx.ObjClasses.Event;
 import com.nn.roomx.ObjClasses.Room;
 import com.nn.roomx.ObjClasses.ServiceResponse;
 import com.nn.roomx.view.CancelAppointmentDialog;
+import com.nn.roomx.view.CircularProgressBar;
 import com.nn.roomx.view.ConfirmAppointmentDialog;
 import com.nn.roomx.view.CreateAppointmentDialog;
+import com.nn.roomx.view.DialogueHelper;
 import com.nn.roomx.view.FinishAppointmentDialog;
 import com.nn.roomx.view.ViewHelper;
-import com.nn.roomx.view.CircularProgressBar;
-import com.nn.roomx.view.DialogueHelper;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
@@ -74,17 +69,15 @@ import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
+
 public class MainActivity extends Activity {
 
     private static final String TAG = "RoomX";
-    private static final String MIME_TEXT_PLAIN = "text/plain";
-    private static final String PREFS_NAME = "RoomxPeferences";
     private Setting settingsRoomx;
     protected PowerManager.WakeLock mWakeLock;
 
     private final Subject<String, String> nfcEvents = new SerializedSubject<String, String>(PublishSubject.<String>create());
 
-    //TODO: should be private
     private ArrayAdapter<Appointment> adapter;
 
     private DataExchange dataExchange;
@@ -106,82 +99,64 @@ public class MainActivity extends Activity {
     private Appointment nextAppointment;
     private String enteredUserId;
     private CreateAppointmentDialog createAppointmnetDialog;
+    private int syncErrorCounter;
+    private boolean syncErrorMode = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Log.i(TAG, "++++++++++++++++++++++ sTART APP ROOMX +++++++++++++++++++++++++++ " + getIntent().getStringExtra("test"));
+        Log.i(TAG, "2########################### START RoomX ################################");
 
         Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(this,
                 MainActivity.class));
 
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setContentView(R.layout.activity_main);
         readSettings();
         this.dataExchange = new DataExchange(settingsRoomx);
-
         checkIfStartedAfterCrush();
 
-        final PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        this.mWakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "tag");
-        this.mWakeLock.acquire();
-
-        // setupNFC();
         initView();
         initListeners();
 
+        scheduleAppMonitor();
+//        startKioskMode();
+        scheduleScreenOff();
+        scheduleRestart();
+    }
+
+    private void scheduleAppMonitor() {
         AlarmManager manager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
-        /* Create the PendingIntent that will launch the BroadcastReceiver */
-        PendingIntent pending = PendingIntent.getBroadcast(this, 0, new Intent(this, RoomxBroadcastReceiver.class), 0);
-
-        /* Schedule Alarm with and authorize to WakeUp the device during sleep */
-///       manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000 * 60 * 60 * 5, pending);
-        //   manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, pending);
-
-//        Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
-//
-//        int b = 255;
-//
-//        Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, b);
-//        //Get the current window attributes
-//        WindowManager.LayoutParams layoutpars = getWindow().getAttributes();
-//        //Set the brightness of this window
-//        layoutpars.screenBrightness = b / (float)255;
-//        //Apply attribute changes to this window
-//        getWindow().setAttributes(layoutpars);
+        PendingIntent pendingAppMonitor = PendingIntent.getBroadcast(this, 0, new Intent(this, AppMonitorBroadcastReceiver.class), 0);
+        manager.cancel(pendingAppMonitor);
+        manager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 6000, pendingAppMonitor);
     }
 
-//    @Override
-//    public boolean onCreateOptionsMenu(Menu menu) {
-//        getMenuInflater().inflate(R.menu.option_menu, menu);
-//        return true;
-//    }
-
-
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        //TODO: code this
-//        try {
-//            //
-//            if (event.getAction() == KeyEvent.ACTION_UP) {
-//                enteredUserId += (char) event.getUnicodeChar();
-//                if (KeyEvent.KEYCODE_ENTER == event.getKeyCode()) {
-//                    Log.i(RoomxUtils.TAG, "Enter clicked " + enteredUserId);
-//                    nfcEvents.onNext(enteredUserId);
-//                    enteredUserId = "";
-//                }
-//            }
-//        } catch (Exception ex) {
-//            ex.printStackTrace();
-//        }
-
-        return true;
+    private void scheduleRestart() {
+        AlarmManager manager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        PendingIntent pendingAppMonitor = PendingIntent.getBroadcast(this, 0, new Intent(this, RestartAppBroadcastReceiver.class), 0);
+        manager.cancel(pendingAppMonitor);
+        manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + settingsRoomx.getMilisToRestart(), pendingAppMonitor); //1min
     }
 
+    private void turnOffScreen() {
+        stopLockTask();
+        LinearLayout mainContainer = (LinearLayout) findViewById(R.id.mainActivityContainer);
+        mainContainer.setKeepScreenOn(false);
+        this.mWakeLock.release();
+    }
+
+    private void startKioskMode() {
+        DevicePolicyManager myDevicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+        ComponentName mDPM = new ComponentName(this, RoomxAdmin.class);
+
+        if (myDevicePolicyManager.isDeviceOwnerApp(this.getPackageName())) {
+            String[] packages = {this.getPackageName()};
+            myDevicePolicyManager.setLockTaskPackages(mDPM, packages);
+            startLockTask();
+        } else {
+            Toast.makeText(getApplicationContext(), "Not owner", Toast.LENGTH_LONG).show();
+        }
+    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -197,7 +172,6 @@ public class MainActivity extends Activity {
     @Override
     public synchronized void onResume() {
         super.onResume();
-        // setupForegroundDispatch(this, mNfcAdapter);
         readSettings();
     }
 
@@ -210,6 +184,28 @@ public class MainActivity extends Activity {
     @Override
     public void onNewIntent(Intent intent) {
         handleIntent(intent);
+    }
+
+    private void scheduleScreenOff() {
+        Log.i(TAG, "------------schedule screen of " + settingsRoomx.getMilisToScreenOf() / (1000 * 60));
+        Observable.timer(settingsRoomx.getMilisToScreenOf(), TimeUnit.MILLISECONDS)
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<Object>() {
+                               @Override
+                               public void call(Object o) {
+                                   Log.i(TAG, "------------schedule screen of go " );
+                                   turnOffScreen();
+                               }
+                           },
+
+                        new Action1<Throwable>() {
+                            public void call(Throwable e) {
+                                e.printStackTrace();
+                            }
+                        });
+
+
     }
 
     private AlertDialog getRoomSelectionDialog(List<Room> rooms) {
@@ -296,6 +292,7 @@ public class MainActivity extends Activity {
         } else {
             initAppointmentsData();
         }
+        disableAppointmentsListerMode();
         enableAppConfigLister();
     }
 
@@ -330,7 +327,7 @@ public class MainActivity extends Activity {
     }
 
     private void readSettings() {
-        settingsRoomx = new Setting(getSharedPreferences(PREFS_NAME, 0));
+        settingsRoomx = new Setting(PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext()));
         settingsRoomx.init();
     }
 
@@ -340,6 +337,7 @@ public class MainActivity extends Activity {
 
     private void checkIfStartedAfterCrush() {
         if (getIntent().getExtras() != null) {
+            //TODO:
 //            try {
 //                handleTechnicalError(getIntent().getStringExtra("stacktrace"), new Exception("CRASH"));
 //            }catch(Exception e){
@@ -352,6 +350,7 @@ public class MainActivity extends Activity {
         Log.i(TAG, "disableAppointmentsListerMode " + appointmentListenerSub);
         if (appointmentListenerSub != null) {
             appointmentListenerSub.unsubscribe();
+            Log.i(TAG, "disableAppoConfigListener " + appointmentListenerSub.isUnsubscribed());
             appointmentListenerSub = null;
         }
 
@@ -370,58 +369,49 @@ public class MainActivity extends Activity {
      * Every x seconds checks app config
      */
     private void enableAppConfigLister() {
-        if (appConfigListenerSub == null) {
-            appConfigListenerSub = Observable.interval(getAppointmentRefereshIntervalSeconds(), TimeUnit.SECONDS)
-                    .subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(new Action1<Object>() {
-                                   @Override
-                                   public void call(Object o) {
-                                       dataExchange.getAppConfig(getRoomId())
-                                               .subscribeOn(Schedulers.newThread())
-                                               .observeOn(AndroidSchedulers.mainThread())
-                                               .doOnError(new Action1<Throwable>() {
-                                                   public void call(Throwable e) {
-
-                                                   }
-                                               })
-                                               .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
-                                                   @Override
-                                                   public Observable<?> call(Observable<? extends Throwable> observable) {
-                                                       return observable.flatMap(new Func1<Throwable, Observable<?>>() {
-                                                           @Override
-                                                           public Observable<?> call(Throwable throwable) {
-                                                               return Observable.timer(10000,
-                                                                       TimeUnit.MILLISECONDS);
-                                                           }
-                                                       });
-                                                   }
-                                               })
-                                               .subscribe(new Action1<ServiceResponse>() {
-                                                              @Override
-                                                              public void call(ServiceResponse o) {
-                                                                  handleServerConfigration(o);
-                                                              }
-                                                          },
-
-                                                       new Action1<Throwable>() {
-                                                           public void call(Throwable e) {
-                                                               e.printStackTrace();
-                                                               enableAppConfigLister();
-                                                               handleTechnicalError(e.getMessage(), e);
-                                                           }
-                                                       });
-                                   }
-                               },
-
-                            new Action1<Throwable>() {
-                                public void call(Throwable e) {
-                                    e.printStackTrace();
-                                    enableAppConfigLister();
-                                    handleTechnicalError(e.getMessage(), e);
-                                }
-                            });
-        }
+//        if (appConfigListenerSub == null) {
+//            appConfigListenerSub = Observable.interval(getAppointmentRefereshIntervalSeconds(), TimeUnit.SECONDS)
+//                    .subscribeOn(Schedulers.newThread())
+//                    .observeOn(AndroidSchedulers.mainThread())
+//                    .subscribe(new Action1<Object>() {
+//                                   @Override
+//                                   public void call(Object o) {
+//                                       dataExchange.getAppConfig(getRoomId())
+//                                               .subscribeOn(Schedulers.newThread())
+//                                               .observeOn(AndroidSchedulers.mainThread())
+//                                               .doOnError(new Action1<Throwable>() {
+//                                                   public void call(Throwable e) {
+//                                                       Log.i(TAG, "doOnError getappconfig");
+//                                                   }
+//                                               })
+//                                               .subscribe(new Action1<ServiceResponse>() {
+//                                                              @Override
+//                                                              public void call(ServiceResponse o) {
+//                                                                  handleServerConfigration(o);
+//                                                                  enableAppConfigLister();
+//                                                              }
+//                                                          }
+//                                                       ,
+//                                                       new Action1<Throwable>() {
+//                                                           public void call(Throwable e) {
+//                                                               e.printStackTrace();
+//                                                               enableAppConfigLister();
+//                                                               handleTechnicalError(e.getMessage(), e);
+//                                                           }
+//                                                       }
+////
+//                                               );
+//                                   }
+//                               },
+//
+//                            new Action1<Throwable>() {
+//                                public void call(Throwable e) {
+//                                    e.printStackTrace();
+//                                    enableAppConfigLister();
+//                                    handleTechnicalError(e.getMessage(), e);
+//                                }
+//                            });
+//        }
 
     }
 
@@ -430,7 +420,7 @@ public class MainActivity extends Activity {
      * Every x seconds checks meetings for room
      */
     private void enableAppointmentsListerMode() {
-        Log.i(TAG, "enableAppointmentsListerMode " + appointmentListenerSub + printStackTrace("enableAppointmentsListerMode"));
+        Log.i(TAG, "enableAppointmentsListerMode() " + appointmentListenerSub + printStackTrace("enableAppointmentsListerMode"));
         if (appointmentListenerSub == null) {
             appointmentListenerSub = Observable.interval(0, getAppointmentRefereshIntervalSeconds(), TimeUnit.SECONDS)
                     .subscribeOn(Schedulers.newThread())
@@ -440,44 +430,36 @@ public class MainActivity extends Activity {
                                    public void call(Object o) {
                                        Log.i(TAG, "enableAppointmentsListerMode refersh " + this.toString());
                                        refreshAppointmentsProgress.show();
-                                       dataExchange.getAppointmentsForRoomObservable(getRoomId(), "Main activity enableAppointmentsListerMode")
+                                       Observable<ServiceResponse<List<Appointment>>> appointmentsForRoomObservable = dataExchange.getAppointmentsForRoomObservable(getRoomId(), "Main activity enableAppointmentsListerMode");
+
+                                       appointmentsForRoomObservable
                                                .subscribeOn(Schedulers.newThread())
                                                .observeOn(AndroidSchedulers.mainThread())
                                                .doOnError(new Action1<Throwable>() {
                                                    public void call(Throwable e) {
                                                        Log.i(TAG, "Error in enableAppointmentsListerMode doOnError " + e.getMessage());
                                                        e.printStackTrace();
-                                                       handleTechnicalError(e.getMessage(), e);
-                                                   }
-                                               })
-                                               .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
-                                                   @Override
-                                                   public Observable<?> call(Observable<? extends Throwable> observable) {
-                                                       return observable.flatMap(new Func1<Throwable, Observable<?>>() {
-                                                           @Override
-                                                           public Observable<?> call(Throwable throwable) {
-                                                               Log.i(TAG, "retryWhen enableAppointmentsListerMode" + throwable);
-                                                               return Observable.timer(10000,
-                                                                       TimeUnit.MILLISECONDS);
-                                                           }
-                                                       });
+                                                       handleSyncError();
                                                    }
                                                })
                                                .subscribe(new Action1<ServiceResponse<List<Appointment>>>() {
                                                               @Override
                                                               public void call(ServiceResponse<List<Appointment>> o) {
+                                                                  resetSyncError();
                                                                   refreshAppointmentsProgress.hide();
                                                                   refresAppointmentsView(o);
+                                                                  enableAppointmentsListerMode();
                                                               }
                                                           },
 
                                                        new Action1<Throwable>() {
                                                            public void call(Throwable e) {
-                                                               Log.i(TAG, "Error in enableAppointmentsListerMode on subscrbe error " + e.getMessage());
+                                                               Log.i(TAG, "Error in enableAppointmentsListerMode on subscrbe error 1 " + e.getMessage());
                                                                refreshAppointmentsProgress.hide();
                                                                e.printStackTrace();
                                                                enableAppointmentsListerMode();
                                                                handleTechnicalError(e.getMessage(), e);
+                                                               handleSyncError();
                                                            }
                                                        });
                                    }
@@ -485,7 +467,7 @@ public class MainActivity extends Activity {
 
                             new Action1<Throwable>() {
                                 public void call(Throwable e) {
-                                    Log.i(TAG, "Error in enableAppointmentsListerMode on subscrbe error " + e.getMessage());
+                                    Log.i(TAG, "Error in enableAppointmentsListerMode on subscrbe error 2 " + e.getMessage());
                                     refreshAppointmentsProgress.hide();
                                     e.printStackTrace();
                                     enableAppointmentsListerMode();
@@ -496,13 +478,45 @@ public class MainActivity extends Activity {
 
     }
 
-    private String printStackTrace(String param) {
-        try {
-            throw new RuntimeException(param);
-        } catch (Exception e) {
-            Log.e(RoomxUtils.TAG, e.getMessage(), e);
-            return "";
+
+    private void resetSyncError() {
+        this.syncErrorCounter = 0;
+
+        if (syncErrorMode) {
+            this.syncErrorMode = false;
+            this.syncErrorCounter = 0;
+
+            setContentView(R.layout.activity_main);
+            ((TextView) findViewById(R.id.roomID)).setText(getRoomId());
         }
+
+    }
+
+    private void handleSyncError() {
+
+        this.syncErrorCounter++;
+
+        if (syncErrorCounter > settingsRoomx.getSyncErrorUnavailabilityThreshold()) {
+            setUnavailabilityView();
+            this.syncErrorMode = true;
+        }
+
+    }
+
+    private void setUnavailabilityView() {
+        setContentView(R.layout.out_of_service);
+    }
+
+
+    private String printStackTrace(String param) {
+        //TODO: uncomment
+//        try {
+//            throw new RuntimeException(param);
+//        } catch (Exception e) {
+//            Log.e(RoomxUtils.TAG, e.getMessage(), e);
+//            return "";
+//        }
+        return "";
     }
 
     private void refresAppointmentsView(ServiceResponse<List<Appointment>> serverResponse) {
@@ -542,7 +556,9 @@ public class MainActivity extends Activity {
     private void timleLineClicked(int index) {
         Appointment appointment = this.appointmentsList.get(index);
         if (appointment.isVirtual()) {
-            createAppointment(appointment);
+            if (appointment.slotAvailableForReservation(settingsRoomx.getMinSlotTimeMinutes())) {
+                createAppointment(appointment);
+            }
         }
     }
 
@@ -616,17 +632,38 @@ public class MainActivity extends Activity {
     }
 
     private void handleServerConfigration(ServiceResponse<List<Appointment>> serverResponse) {
-        Log.i(TAG, "handleServerConfigration ");
-        for (Event e : serverResponse.getEvents()) {
-            handleRoomxEvent(e);
-        }
+        AppManagementHelper amh = new AppManagementHelper(this, new AppManagementHelper.AppManagementCallback() {
+            @Override
+            public void prepareRestartApp() {
+                disableAppointmentsListerMode();
+                disableListenerMode();
+                disableMonitorInactiveDialogue();
+                disableAppoConfigListener();
+            }
+        });
+
+        amh.handleServerConfigration(serverResponse);
+
+//
+//        Log.i(TAG, "handleServerConfigration ");
+//        for (Event e : serverResponse.getEvents()) {
+//            handleRoomxEvent(e);
+//        }
     }
 
     private void handleRoomxEvent(Event event) {
+
+
+        Log.i(TAG, "handle event " + event.getName());
         if ("RESTART".equals(event.getName())) {
             restartApp();
+        } else if ("UPDATE".equals(event.getName())) {
+            updateApp();
+        } else if ("RESTART_DEVICE".equals(event.getName())) {
+            restartDevice();
         }
     }
+
 
     /**
      * Listen NFC events
@@ -649,9 +686,6 @@ public class MainActivity extends Activity {
     }
 
     private void restartApp() {
-//        Intent i = getBaseContext().getPackageManager()
-//                .getLaunchIntentForPackage(getBaseContext().getPackageName());
-
         disableAppointmentsListerMode();
         disableListenerMode();
         disableMonitorInactiveDialogue();
@@ -663,6 +697,78 @@ public class MainActivity extends Activity {
         Log.i("ROOMX", "restart app " + i);
         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(i);
+    }
+
+    private void restartDevice() {
+        try {
+            Log.e(TAG, "restartDevice");
+            String line = null;
+            String command = "reboot";
+
+            Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", command});
+            InputStream stdin = proc.getInputStream();
+            InputStreamReader isr = new InputStreamReader(stdin);
+            BufferedReader br = new BufferedReader(isr);
+
+            while ((line = br.readLine()) != null) {
+                Log.i(RoomxUtils.TAG, "OUTPUT " + line);
+            }
+            int i = proc.waitFor();
+            Log.i(RoomxUtils.TAG, "APP updated " + "Process exitValue: " + i);
+
+        } catch (Exception e) {
+            System.out.println(e.toString());
+            System.out.println("no root");
+            Log.e(TAG, "No root");
+        }
+    }
+
+    private void updateApp() {
+
+        Toast.makeText(MainActivity.this, "Upate APP", Toast.LENGTH_SHORT).show();
+
+        dataExchange.getUpdateAppObservable(getRoomId()).subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<Object>() {
+                               @Override
+                               public void call(Object o) {
+                                   String destination = Environment.getExternalStorageDirectory() + "/";
+                                   destination += settingsRoomx.getApkName();
+                                   File file = new File(destination);
+
+                                   try {
+                                       String line = null;
+                                       String command = "pm install -r " + file.getAbsolutePath() + ";am start -n com.nn.roomx/com.nn.roomx.MainActivity";
+
+
+                                       AlarmManager manager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                                       PendingIntent pending = PendingIntent.getBroadcast(MainActivity.this, 0, new Intent(MainActivity.this, RoomxBroadcastReceiver.class), 0);
+                                       manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000 * 10, pending); //5seconds
+
+                                       Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", command});
+                                       InputStream stdin = proc.getInputStream();
+                                       InputStreamReader isr = new InputStreamReader(stdin);
+                                       BufferedReader br = new BufferedReader(isr);
+
+                                       while ((line = br.readLine()) != null) {
+                                           Log.i(RoomxUtils.TAG, "OUTPUT " + line);
+                                       }
+                                       int i = proc.waitFor();
+                                       Log.i(RoomxUtils.TAG, "APP updated " + "Process exitValue: " + i);
+
+                                   } catch (Exception e) {
+                                       System.out.println(e.toString());
+                                       System.out.println("no root");
+                                   }
+
+                               }
+                           },
+                        new Action1<Throwable>() {
+                            public void call(Throwable e) {
+                                Log.e(RoomxUtils.TAG, "Upate APP error call" + e.getMessage(), e);
+                                handleTechnicalError(e.getMessage(), e);
+                            }
+                        });
     }
 
     private void createAppointment(Appointment appointment) {
@@ -694,91 +800,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void onClick(View view) {
-//            createAppointment(getCurrentAppointment());
-
-            Toast.makeText(MainActivity.this, "Upate APP", Toast.LENGTH_SHORT).show();
-            DownloadAppService das = new DownloadAppService(MainActivity.this);
-            das.updateApp().subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(new Action1<Object>() {
-                                   @Override
-                                   public void call(Object o) {
-                                       String destination = Environment.getExternalStorageDirectory() + "/";
-                                       String fileName = "";
-                                       destination += "update1.apk";
-
-                                       File file = new File(destination);
-
-
-                                       Log.i(RoomxUtils.TAG, "Upate APP call " + file.getAbsolutePath());
-
-
-//                                       Intent intent = new Intent(Intent.ACTION_VIEW);
-//                                       intent.setDataAndType(Uri.fromFile(file),
-//                                               "application/vnd.android.package-archive");
-//                                       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//                                       startActivity(intent);
-
-                                       Log.i(RoomxUtils.TAG, "=============================================");
-                                       Toast.makeText(MainActivity.this, "Upate APP" + "=============================================", Toast.LENGTH_SHORT).show();
-
-                                       AlarmManager manager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
-        /* Create the PendingIntent that will launch the BroadcastReceiver */
-                                       PendingIntent pending = PendingIntent.getBroadcast(MainActivity.this, 0, new Intent(MainActivity.this, RoomxBroadcastReceiver.class), 0);
-
-        /* Schedule Alarm with and authorize to WakeUp the device during sleep */
-
-                                       manager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000 * 5, pending);
-
-                                       try {
-                                           String line = null;
-//                                           String command = "pm install -r " + file.getAbsolutePath() + ";am start -n com.nn.roomx/com.nn.roomx.MainActivity";
-                                           String commandRestart = "start -a android.intent.action.MAIN -n com.nn.roomx/com.nn.roomx.MainActivity";
-                                           String commandInstall = "pm install -r " + file.getAbsolutePath();
-                                           String command = "reboot now";
-
-
-                                           Process proc1 = Runtime.getRuntime().exec(new String[]{"su", "-c", commandInstall});
-                                           InputStream stdin = proc1.getInputStream();
-                                           InputStreamReader isr = new InputStreamReader(stdin);
-                                           BufferedReader br = new BufferedReader(isr);
-
-                                           while ((line = br.readLine()) != null)
-                                               Log.i(RoomxUtils.TAG, "OUTPUT " + line);
-                                           int i = proc1.waitFor();
-                                           Log.i(RoomxUtils.TAG, "APP updated " + "Process exitValue: " + i);
-
-//                                           Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", command});
-//                                           Log.i(RoomxUtils.TAG, "APP updated " + file.getAbsolutePath());
-//                                           Toast.makeText(MainActivity.this, "Upate APP" + "APP updated " + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
-//
-//                                           stdin = proc.getInputStream();
-//                                           isr = new InputStreamReader(stdin);
-//                                           br = new BufferedReader(isr);
-//
-//
-//                                           while ((line = br.readLine()) != null)
-//                                               Log.i(RoomxUtils.TAG, "OUTPUT " + line);
-//
-//
-//                                           int exitVal = proc.waitFor();
-//                                           Log.i(RoomxUtils.TAG, "APP updated " + "Process exitValue: " + exitVal);
-
-                                       } catch (Exception e) {
-                                           System.out.println(e.toString());
-                                           System.out.println("no root");
-                                       }
-
-                                   }
-                               },
-
-                            new Action1<Throwable>() {
-                                public void call(Throwable e) {
-
-                                    Log.i(RoomxUtils.TAG, "Upate APP error call");
-                                }
-                            });
+            createAppointment(getCurrentAppointment());
         }
     };
 
@@ -942,14 +964,6 @@ public class MainActivity extends Activity {
         saveSettings();
     }
 
-    private void setupNFC() {
-        mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
-        if (!checkNFCenabled()) {
-            Toast.makeText(this, "This device doesn't support NFC.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        handleIntent(getIntent());
-    }
 
     private boolean checkNFCenabled() {
         if (mNfcAdapter == null) {
@@ -966,67 +980,27 @@ public class MainActivity extends Activity {
     }
 
     private void handleIntent(Intent intent) {
-        String action = intent.getAction();
-        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
-
-            String type = intent.getType();
-            if (MIME_TEXT_PLAIN.equals(type)) {
-
-                Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
-                AsyncTask<Tag, Void, String> execute = new NdefReaderTask().execute(tag);
-                try {
-                    String result = execute.get();
-                    nfcEvents.onNext(result);
-                    //tryConfirm(result);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
-
-
-            } else {
-                Log.d(TAG, "Wrong mime type: " + type);
-            }
-        } else if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
-            Toast.makeText(this, "tech discovered", Toast.LENGTH_LONG).show();
-            // In case we would still use the Tech Discovered Intent
-            Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
-            String[] techList = tag.getTechList();
-            String searchedTech = Ndef.class.getName();
-
-            for (String tech : techList) {
-                if (searchedTech.equals(tech)) {
-                    new NdefReaderTask().execute(tag);
-                    break;
-                }
-            }
-        }
     }
 
-    public static void setupForegroundDispatch(final Activity activity, NfcAdapter adapter) {
-        final Intent intent = new Intent(activity.getApplicationContext(), activity.getClass());
-        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-
-        final PendingIntent pendingIntent = PendingIntent.getActivity(activity.getApplicationContext(), 0, intent, 0);
-
-        IntentFilter[] filters = new IntentFilter[1];
-        String[][] techList = new String[][]{};
-
-        // Notice that this is the same filter as in our manifest.
-        filters[0] = new IntentFilter();
-        filters[0].addAction(NfcAdapter.ACTION_NDEF_DISCOVERED);
-        filters[0].addCategory(Intent.CATEGORY_DEFAULT);
-        try {
-            filters[0].addDataType(MIME_TEXT_PLAIN);
-        } catch (IntentFilter.MalformedMimeTypeException e) {
-            throw new RuntimeException("Check your mime type.");
-        }
-
-        adapter.enableForegroundDispatch(activity, pendingIntent, filters, techList);
-    }
 
     private void initView() {
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        setContentView(R.layout.activity_main);
+
+        final PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        this.mWakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "tag");
+        this.mWakeLock.acquire();
+
+        Settings.System.putInt(getContentResolver(),
+                Settings.System.SCREEN_OFF_TIMEOUT, 1);
+
+        View decorView = getWindow().getDecorView();
+        int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
 
         ((TextView) findViewById(R.id.roomID)).setText(getRoomId());
 
@@ -1085,7 +1059,7 @@ public class MainActivity extends Activity {
         Log.i(TAG, " setAppointmentsView ");
         Appointment active = getCurrentAppointment();
 
-        //next appointment availbe for action
+        //next appointment available for action
         if (nextAppointment != null && !nextAppointment.isVirtual() && nextAppointment.isAvailableForActioin(settingsRoomx.getAppointmentReadyForActionBofreStartMinutes())) {
             Log.i(TAG, " setAppointmentsView setBusyRoomReadyForActionNextMeeting");
             ViewHelper.setBusyRoomReadyForActionNextMeeting(this, currentAppointment, nextAppointment, getCancelButtonListener(nextAppointment), getConfirmButtonListener(nextAppointment));
@@ -1193,52 +1167,6 @@ public class MainActivity extends Activity {
         return nextAppointment;
     }
 
-    private class NdefReaderTask extends AsyncTask<Tag, Void, String> {
-
-        @Override
-        protected String doInBackground(Tag... params) {
-            Tag tag = params[0];
-
-            Ndef ndef = Ndef.get(tag);
-            if (ndef == null) {
-                return null;
-            }
-
-            NdefMessage ndefMessage = ndef.getCachedNdefMessage();
-
-            NdefRecord[] records = ndefMessage.getRecords();
-            for (NdefRecord ndefRecord : records) {
-                if (ndefRecord.getTnf() == NdefRecord.TNF_WELL_KNOWN && Arrays.equals(ndefRecord.getType(), NdefRecord.RTD_TEXT)) {
-                    try {
-                        return readText(ndefRecord);
-                    } catch (UnsupportedEncodingException e) {
-                        Log.e(TAG, "Unsupported Encoding", e);
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        private String readText(NdefRecord record) throws UnsupportedEncodingException {
-
-            byte[] payload = record.getPayload();
-
-            String textEncoding = ((payload[0] & 128) == 0) ? "UTF-8" : "UTF-16";
-
-            int languageCodeLength = payload[0] & 0063;
-
-            return new String(payload, languageCodeLength + 1, payload.length - languageCodeLength - 1, textEncoding);
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-            if (result != null) {
-                //     Toast.makeText(getApplicationContext(), getResources().getString(R.string.msg_from_nfc) + " "
-                //           + result, Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
 
     class ExceptionHandler implements
             java.lang.Thread.UncaughtExceptionHandler {

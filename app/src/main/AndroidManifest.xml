@@ -18,26 +18,39 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <uses-permission android:name="android.permission.WRITE_SETTINGS"></uses-permission>
+    <!--
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.front" android:required="false" />
+    -->
     <application
             android:allowBackup="true"
             android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
             android:supportsRtl="true">
-        <activity android:name=".MainActivity" android:screenOrientation="landscape" android:exported="true">
+        <activity android:name=".MainActivity"  android:screenOrientation="landscape" >
             <intent-filter>
-                <onSuccess android:name="android.intent.onSuccess.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!--
             <intent-filter>
                 <onSuccess android:name="android.nfc.onSuccess.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:mimeType="text/plain" />
             </intent-filter>
-
+-->
         </activity>
 
+
         <receiver android:name=".RoomxBroadcastReceiver" android:process=":remote" >
+
+        </receiver>
+
+        <receiver android:name=".AppMonitorBroadcastReceiver" android:process=":remote" >
+
+        </receiver>
+
+        <receiver android:name=".RestartAppBroadcastReceiver" android:process=":remote" >
 
         </receiver>
 
@@ -49,6 +62,22 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <service android:name=".AppMonitor"/>
+        <service android:name=".RestartAppService"/>
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
+        <receiver android:name=".RoomxAdmin"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data android:name="android.app.device_admin" android:resource="@xml/roomx_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+        <uses-permission android:name="android.permission.MANAGE_DEVICE_ADMINS" />
+
     </application>
 
 </manifest>

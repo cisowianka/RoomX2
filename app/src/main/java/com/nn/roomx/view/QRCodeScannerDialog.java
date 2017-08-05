@@ -14,15 +14,15 @@ import android.view.WindowManager;
 import android.widget.LinearLayout;
 
 
-import com.google.zxing.BinaryBitmap;
-import com.google.zxing.ChecksumException;
-import com.google.zxing.FormatException;
-import com.google.zxing.MultiFormatReader;
-import com.google.zxing.NotFoundException;
-import com.google.zxing.PlanarYUVLuminanceSource;
-import com.google.zxing.common.HybridBinarizer;
-import com.google.zxing.Reader;
-import com.google.zxing.Result;
+//import com.google.zxing.BinaryBitmap;
+//import com.google.zxing.ChecksumException;
+//import com.google.zxing.FormatException;
+//import com.google.zxing.MultiFormatReader;
+//import com.google.zxing.NotFoundException;
+//import com.google.zxing.PlanarYUVLuminanceSource;
+//import com.google.zxing.common.HybridBinarizer;
+//import com.google.zxing.Reader;
+//import com.google.zxing.Result;
 import com.nn.roomx.MainActivity;
 import com.nn.roomx.R;
 import com.nn.roomx.RoomxUtils;
@@ -126,22 +126,22 @@ public class QRCodeScannerDialog extends Dialog {
            Camera.Size size = camera.getParameters().getPreviewSize();
 //
 //            // Create BinaryBitmap
-            PlanarYUVLuminanceSource source = new PlanarYUVLuminanceSource(
-                    data, size.width, size.height, 0, 0, size.width, size.height, false);
-            BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
-
-            // Read QR Code
-            Reader reader = new MultiFormatReader();
-            Result result = null;
-            try {
-                result = reader.decode(bitmap);
-                String text = result.getText();
-
-                Log.i(RoomxUtils.TAG, "readed value --------------------- " + text);
-
-            } catch (Exception e) {
-                Log.e(RoomxUtils.TAG, e.getMessage(), e);
-            }
+//            PlanarYUVLuminanceSource source = new PlanarYUVLuminanceSource(
+//                    data, size.width, size.height, 0, 0, size.width, size.height, false);
+//            BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+//
+//            // Read QR Code
+//            Reader reader = new MultiFormatReader();
+//            Result result = null;
+//            try {
+//                result = reader.decode(bitmap);
+//                String text = result.getText();
+//
+//                Log.i(RoomxUtils.TAG, "readed value --------------------- " + text);
+//
+//            } catch (Exception e) {
+//                Log.e(RoomxUtils.TAG, e.getMessage(), e);
+//            }
         }
     };
 

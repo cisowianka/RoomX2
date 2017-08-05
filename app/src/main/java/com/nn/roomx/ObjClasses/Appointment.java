@@ -1,8 +1,10 @@
 package com.nn.roomx.ObjClasses;
 
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.nn.roomx.RoomxUtils;
+import com.nn.roomx.Setting;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -230,5 +232,16 @@ public class Appointment {
 
         return new Date().after(appCal.getTime());
 
+    }
+
+    public boolean slotAvailableForReservation(int minSlotTimeMinutes) {
+        Date now = new Date();
+        Date startApp = getStart();
+        if(now.after(getStart())){
+            startApp = now;
+        }
+
+        long minutes = RoomxUtils.diffDatesInMinutes(getEnd(), startApp);
+        return minutes >= minSlotTimeMinutes;
     }
 }

@@ -50,6 +50,10 @@ public class RoomxUtils {
     }
 
     public static Date getDateFromStartPlusShift(Date start, String shift) {
+        return getDateFromStartPlusShift(start, Integer.valueOf(shift));
+    }
+
+    public static Date getDateFromStartPlusShift(Date start, int shift) {
         Date date = new Date();
         date.setTime((Integer.valueOf(shift) * MINUTE) + start.getTime());
         return date;
